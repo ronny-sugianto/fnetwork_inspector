@@ -1,0 +1,14 @@
+name: fnetwork_inspector_example
+description: Example app for fnetwork_inspector.
+publish_to: none
+
+environment:
+  sdk: ^3.4.0
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.0.0
+  fnetwork_inspector:
+    path: ../

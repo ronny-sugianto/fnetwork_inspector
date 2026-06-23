@@ -1,0 +1,6 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - always_specify_types
+    - curly_braces_in_flow_control_structures
