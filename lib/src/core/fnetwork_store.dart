@@ -1,8 +1,11 @@
 import 'dart:collection';
 
 import 'package:fnetwork_inspector/src/model/network_log.dart';
+import 'package:flutter/foundation.dart';
 
-class FNetworkStore {
+typedef FNetworkErrorCallback = void Function(NetworkLog log);
+
+class FNetworkStore with ChangeNotifier {
   FNetworkStore._();
 
   static final FNetworkStore instance = FNetworkStore._();
@@ -12,9 +15,9 @@ class FNetworkStore {
   final LinkedHashMap<String, NetworkLog> _logs =
       LinkedHashMap<String, NetworkLog>();
 
-  int _successCount = 0;
-  int _errorCount = 0;
   String _latestEndpoint = '';
+
+  FNetworkErrorCallback? onApiError;
 
   UnmodifiableListView<NetworkLog> get logs =>
       UnmodifiableListView<NetworkLog>(_logs.values.toList().reversed.toList());
@@ -23,8 +26,14 @@ class FNetworkStore {
       .where((NetworkLog l) => l.status == NetworkLogStatus.loading)
       .length;
 
-  int get successCount => _successCount;
-  int get errorCount => _errorCount;
+  int get successCount => _logs.values
+      .where((NetworkLog l) => l.status == NetworkLogStatus.success)
+      .length;
+
+  int get errorCount => _logs.values
+      .where((NetworkLog l) => l.status == NetworkLogStatus.error)
+      .length;
+
   String get latestEndpoint => _latestEndpoint;
 
   void onRequest(NetworkLog log) {
@@ -33,6 +42,7 @@ class FNetworkStore {
     }
     _logs[log.id] = log;
     _latestEndpoint = log.shortLabel;
+    notifyListeners();
   }
 
   void onSuccess(
@@ -51,8 +61,8 @@ class FNetworkStore {
       responseHeaders: responseHeaders,
       responseBody: responseBody,
     );
-    _successCount++;
     _latestEndpoint = _logs[id]!.shortLabel;
+    notifyListeners();
   }
 
   void onError(
@@ -71,16 +81,16 @@ class FNetworkStore {
       errorMessage: errorMessage,
       responseBody: responseBody,
     );
-    _errorCount++;
     _latestEndpoint = _logs[id]!.shortLabel;
+    onApiError?.call(_logs[id]!);
+    notifyListeners();
   }
 
   NetworkLog? getLog(String id) => _logs[id];
 
   void clear() {
     _logs.clear();
-    _successCount = 0;
-    _errorCount = 0;
     _latestEndpoint = '';
+    notifyListeners();
   }
 }

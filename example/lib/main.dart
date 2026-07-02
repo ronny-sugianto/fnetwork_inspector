@@ -19,9 +19,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'fnetwork_inspector example',
-      home: HomeScreen(),
+      builder: (BuildContext context, Widget? child) => FNetworkInspectorOverlay(
+        enabled: kDebugMode,
+        child: child!,
+      ),
+      home: const HomeScreen(),
     );
   }
 }
@@ -40,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _dio = Dio(BaseOptions(baseUrl: 'https://jsonplaceholder.typicode.com'));
-    _dio.interceptors.add(FNetworkInspector.interceptor);
+    _dio.interceptors.add(FNetworkInspector.dioInterceptor);
   }
 
   Future<void> _makeRequest() async {

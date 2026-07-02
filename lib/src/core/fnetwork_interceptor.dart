@@ -7,8 +7,8 @@ import 'package:fnetwork_inspector/src/model/network_log.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
-class FNetworkInterceptor extends Interceptor {
-  FNetworkInterceptor({
+class FNetworkDioInterceptor extends Interceptor {
+  FNetworkDioInterceptor({
     bool enableInspection = true,
     bool enableNotifications = false,
   })  : _enableInspection = enableInspection,

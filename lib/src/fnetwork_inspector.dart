@@ -1,32 +1,36 @@
 import 'package:dio/dio.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_interceptor.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_notification_service.dart';
+import 'package:fnetwork_inspector/src/core/fnetwork_store.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_detail_screen.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_list_screen.dart';
 import 'package:flutter/material.dart';
 
 /// Single entry point for fnetwork_inspector.
 ///
-/// Call [initialize] once during app startup, then attach [interceptor]
-/// to your Dio instance.
+/// Call [initialize] once during app startup, then attach the interceptor
+/// to your HTTP client.
 ///
 /// ```dart
 /// await FNetworkInspector.initialize(
 ///   enableInspection: !kReleaseMode,
 ///   enableNotifications: true,
 /// );
-/// dio.interceptors.add(FNetworkInspector.interceptor);
+/// // Dio:
+/// dio.interceptors.add(FNetworkInspector.dioInterceptor);
+/// // http:
+/// final client = FNetworkHttpInterceptor(inner: http.Client());
 /// ```
 class FNetworkInspector {
   FNetworkInspector._();
 
-  static FNetworkInterceptor? _interceptor;
+  static FNetworkDioInterceptor? _interceptor;
 
   /// Whether [initialize] has been called.
   static bool get isInitialized => _interceptor != null;
 
   /// The configured Dio interceptor. Throws if [initialize] has not been called.
-  static Interceptor get interceptor {
+  static Interceptor get dioInterceptor {
     assert(_interceptor != null, 'Call FNetworkInspector.initialize() first.');
     return _interceptor!;
   }
@@ -37,11 +41,15 @@ class FNetworkInspector {
   /// - [enableNotifications]: show a persistent Android status-bar notification
   ///   while requests are in flight. Ignored when [enableInspection] is false.
   ///   Has no effect on iOS or web.
+  /// - [onApiError]: optional callback invoked on every failed request (4xx, 5xx,
+  ///   or network error). Receives the completed [NetworkLog] with full context —
+  ///   useful for forwarding errors to Sentry, Crashlytics, etc.
   ///
   /// Safe to call multiple times — subsequent calls are no-ops.
   static Future<void> initialize({
     bool enableInspection = true,
     bool enableNotifications = false,
+    FNetworkErrorCallback? onApiError,
   }) async {
     if (_interceptor != null) return;
 
@@ -51,7 +59,9 @@ class FNetworkInspector {
       await FNetworkNotificationService.instance.initialize();
     }
 
-    _interceptor = FNetworkInterceptor(
+    FNetworkStore.instance.onApiError = onApiError;
+
+    _interceptor = FNetworkDioInterceptor(
       enableInspection: enableInspection,
       enableNotifications: notif,
     );
@@ -69,11 +79,16 @@ class FNetworkInspector {
       onSummaryTap: () => key.currentState?.push(
         MaterialPageRoute<void>(builder: (_) => const NetworkLogListScreen()),
       ),
-      onRequestTap: (String requestId) => key.currentState?.push(
-        MaterialPageRoute<void>(
-          builder: (_) => NetworkLogDetailScreen(requestId: requestId),
-        ),
-      ),
+      onRequestTap: (String requestId) {
+        key.currentState?.push(
+          MaterialPageRoute<void>(builder: (_) => const NetworkLogListScreen()),
+        );
+        key.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => NetworkLogDetailScreen(requestId: requestId),
+          ),
+        );
+      },
     );
   }
 

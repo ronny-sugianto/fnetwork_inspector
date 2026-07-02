@@ -12,3 +12,6 @@ dependencies:
   dio: ^5.0.0
   fnetwork_inspector:
     path: ../
+
+flutter:
+  uses-material-design: true

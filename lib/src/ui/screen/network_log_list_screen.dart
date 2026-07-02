@@ -4,7 +4,11 @@ import 'package:fnetwork_inspector/src/ui/screen/network_log_detail_screen.dart'
 import 'package:flutter/material.dart';
 
 class NetworkLogListScreen extends StatefulWidget {
-  const NetworkLogListScreen({super.key});
+  const NetworkLogListScreen({super.key, this.onOverlayClose});
+
+  /// When non-null a close (×) button is shown as the AppBar leading widget
+  /// and tapping it calls this callback. Used by [FNetworkInspectorOverlay].
+  final VoidCallback? onOverlayClose;
 
   @override
   State<NetworkLogListScreen> createState() => _NetworkLogListScreenState();
@@ -16,7 +20,8 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
 
   String _searchQuery = '';
   NetworkLogStatus? _filterStatus;
-  String? _filterMethod;
+  final Set<String> _filterMethods = <String>{};
+  final Set<String> _filterPathSections = <String>{};
 
   static const Color _bg = Color(0xFF0D1117);
   static const Color _surface = Color(0xFF161B22);
@@ -27,6 +32,10 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
   static const Color _red = Color(0xFFF85149);
   static const Color _orange = Color(0xFFD29922);
   static const Color _blue = Color(0xFF58A6FF);
+
+  int get _activeFilterCount =>
+      (_filterMethods.isNotEmpty ? 1 : 0) +
+      (_filterPathSections.isNotEmpty ? 1 : 0);
 
   @override
   void dispose() {
@@ -56,13 +65,15 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       final bool matchesStatus =
           _filterStatus == null || log.status == _filterStatus;
       final bool matchesMethod =
-          _filterMethod == null ||
-          log.method.toUpperCase() == _filterMethod;
-      return matchesSearch && matchesStatus && matchesMethod;
+          _filterMethods.isEmpty ||
+          _filterMethods.contains(log.method.toUpperCase());
+      final bool matchesPathSection =
+          _filterPathSections.isEmpty ||
+          _filterPathSections.contains(_lastSegment(log.path));
+      return matchesSearch && matchesStatus && matchesMethod && matchesPathSection;
     }).toList();
   }
 
-  // Returns where the search matched (for badge indicator), null if matched path/method/status
   String? _getMatchSource(NetworkLog log) {
     if (_searchQuery.isEmpty) return null;
     final String q = _searchQuery.toLowerCase();
@@ -72,12 +83,8 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
         (log.statusCode?.toString().contains(q) ?? false)) {
       return null;
     }
-    if (log.requestBody?.toLowerCase().contains(q) ?? false) {
-      return 'req body';
-    }
-    if (log.responseBody?.toLowerCase().contains(q) ?? false) {
-      return 'res body';
-    }
+    if (log.requestBody?.toLowerCase().contains(q) ?? false) return 'req body';
+    if (log.responseBody?.toLowerCase().contains(q) ?? false) return 'res body';
     return null;
   }
 
@@ -87,6 +94,29 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       methods.add(log.method.toUpperCase());
     }
     return methods.toList()..sort();
+  }
+
+  String _stripQuery(String path) {
+    final int q = path.indexOf('?');
+    return q == -1 ? path : path.substring(0, q);
+  }
+
+  String? _lastSegment(String path) {
+    final List<String> segs = _stripQuery(path)
+        .split('/')
+        .where((String s) => s.isNotEmpty)
+        .toList();
+    return segs.isEmpty ? null : segs.last;
+  }
+
+  List<String> get _availablePathSections {
+    final Set<String> sections = <String>{};
+    for (final NetworkLog log in _store.logs) {
+      final String? seg = _lastSegment(log.path);
+      if (seg != null) sections.add(seg);
+    }
+    if (sections.length <= 1) return <String>[];
+    return sections.toList()..sort();
   }
 
   Color _statusColor(NetworkLogStatus status) {
@@ -116,6 +146,200 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
     }
   }
 
+  void _showFilterSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: _surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext ctx, StateSetter setSheet) {
+            final List<String> methods = _availableMethods;
+            final List<String> sections = _availablePathSections;
+
+            void toggleMethod(String m) {
+              setState(() {
+                if (_filterMethods.contains(m)) {
+                  _filterMethods.remove(m);
+                } else {
+                  _filterMethods.add(m);
+                }
+              });
+              setSheet(() {});
+            }
+
+            void toggleSection(String s) {
+              setState(() {
+                if (_filterPathSections.contains(s)) {
+                  _filterPathSections.remove(s);
+                } else {
+                  _filterPathSections.add(s);
+                }
+              });
+              setSheet(() {});
+            }
+
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: _border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: <Widget>[
+                        const Text(
+                          'Filter',
+                          style: TextStyle(
+                            color: _textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_filterMethods.isNotEmpty || _filterPathSections.isNotEmpty)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _filterMethods.clear();
+                                _filterPathSections.clear();
+                              });
+                              setSheet(() {});
+                            },
+                            child: const Text(
+                              'Reset',
+                              style: TextStyle(
+                                color: _textMuted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (methods.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 20),
+                      const Text(
+                        'METHOD',
+                        style: TextStyle(
+                          color: _textMuted,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: methods.map((String m) {
+                          final bool active = _filterMethods.contains(m);
+                          final Color c = _methodColor(m);
+                          return GestureDetector(
+                            onTap: () => toggleMethod(m),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? c.withValues(alpha: 0.15)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: active ? c : _border,
+                                  width: active ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Text(
+                                m,
+                                style: TextStyle(
+                                  color: active ? c : _textMuted,
+                                  fontSize: 12,
+                                  fontWeight: active
+                                      ? FontWeight.w700
+                                      : FontWeight.normal,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                    if (sections.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 20),
+                      const Text(
+                        'PATH',
+                        style: TextStyle(
+                          color: _textMuted,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: sections.map((String s) {
+                          final bool active = _filterPathSections.contains(s);
+                          return GestureDetector(
+                            onTap: () => toggleSection(s),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? _blue.withValues(alpha: 0.15)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: active ? _blue : _border,
+                                  width: active ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Text(
+                                s,
+                                style: TextStyle(
+                                  color: active ? _blue : _textMuted,
+                                  fontSize: 12,
+                                  fontWeight: active
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<NetworkLog> logs = _filteredLogs;
@@ -132,11 +356,41 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       ),
       child: Scaffold(
         appBar: AppBar(
+          leading: widget.onOverlayClose != null
+              ? IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  tooltip: 'Close inspector',
+                  onPressed: widget.onOverlayClose,
+                )
+              : null,
           title: const Text(
             'Network Inspector',
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           actions: <Widget>[
+            Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                IconButton(
+                  icon: const Icon(Icons.tune, size: 20),
+                  tooltip: 'Filter',
+                  onPressed: _showFilterSheet,
+                ),
+                if (_activeFilterCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: _blue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             IconButton(
               icon: const Icon(Icons.refresh, size: 20),
               tooltip: 'Refresh',
@@ -159,7 +413,7 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
         body: Column(
           children: <Widget>[
             _buildSummaryBar(),
-            _buildSearchAndFilter(),
+            _buildSearchBar(),
             Expanded(
               child: logs.isEmpty
                   ? _buildEmptyState()
@@ -184,21 +438,21 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: <Widget>[
-          _buildChip(
+          _buildStatusChip(
             '${_store.loadingCount}',
             'Loading',
             _orange,
             NetworkLogStatus.loading,
           ),
           const SizedBox(width: 8),
-          _buildChip(
+          _buildStatusChip(
             '${_store.successCount}',
             'Success',
             _green,
             NetworkLogStatus.success,
           ),
           const SizedBox(width: 8),
-          _buildChip(
+          _buildStatusChip(
             '${_store.errorCount}',
             'Error',
             _red,
@@ -214,7 +468,7 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
     );
   }
 
-  Widget _buildChip(
+  Widget _buildStatusChip(
     String count,
     String label,
     Color color,
@@ -257,98 +511,46 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
     );
   }
 
-  Widget _buildSearchAndFilter() {
-    final List<String> methods = _availableMethods;
+  Widget _buildSearchBar() {
     return Container(
       color: _bg,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          TextField(
-            controller: _searchController,
-            style: const TextStyle(color: _textPrimary, fontSize: 13),
-            decoration: InputDecoration(
-              hintText: 'Search path, body, status code...',
-              hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
-              prefixIcon: const Icon(Icons.search, color: _textMuted, size: 18),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.close, color: _textMuted, size: 16),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: _surface,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: _border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: _border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: _blue),
-              ),
-            ),
-            onChanged: (String v) => setState(() => _searchQuery = v),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: _textPrimary, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: 'Search path, body, status code...',
+          hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
+          prefixIcon: const Icon(Icons.search, color: _textMuted, size: 18),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close, color: _textMuted, size: 16),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: _surface,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
           ),
-          if (methods.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: <Widget>[
-                  _buildMethodChip(null, 'ALL'),
-                  ...methods.map(
-                    (String m) => Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: _buildMethodChip(m, m),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMethodChip(String? method, String label) {
-    final bool isActive = _filterMethod == method;
-    final Color color = method != null ? _methodColor(method) : _textMuted;
-    return GestureDetector(
-      onTap: () => setState(() => _filterMethod = isActive ? null : method),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: isActive ? color.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isActive ? color : _border,
-            width: isActive ? 1.5 : 1,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _blue),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? color : _textMuted,
-            fontSize: 11,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-            fontFamily: 'monospace',
-          ),
-        ),
+        onChanged: (String v) => setState(() => _searchQuery = v),
       ),
     );
   }
@@ -477,7 +679,8 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
           Text(
             _searchQuery.isNotEmpty ||
                     _filterStatus != null ||
-                    _filterMethod != null
+                    _filterMethods.isNotEmpty ||
+                    _filterPathSections.isNotEmpty
                 ? 'No matching requests'
                 : 'No requests yet',
             style: const TextStyle(color: _textMuted, fontSize: 14),
