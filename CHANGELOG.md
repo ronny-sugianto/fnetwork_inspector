@@ -1,3 +1,7 @@
+## 0.2.0+1
+
+- Fixed README images not displaying on pub.dev (switched to absolute GitHub raw URLs).
+
 ## 0.2.0
 
 **Platform support: Android, iOS, Web.**
