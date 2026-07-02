@@ -1,3 +1,8 @@
+## 0.3.0
+
+- Fixed: `FNetworkDioInterceptor` duplicated the base URL's path segment in the displayed/exported URL (URL, cURL, share report) when `BaseOptions.baseUrl` itself contained a path (e.g. `https://host/doctor/backend-api/doctor`). `baseUrl` is now always derived as `scheme://host[:port]` from the resolved request URI, matching `FNetworkHttpInterceptor`'s behavior.
+- Path filter chips now skip trailing dynamic segments (numeric ids, uuids, hashes, codes like `Y002129`) and fall back to the nearest static segment, so chips represent endpoints (e.g. `profiles`, `doctors`) instead of request-specific ids.
+
 ## 0.2.0+1
 
 - Fixed README images not displaying on pub.dev (switched to absolute GitHub raw URLs).
