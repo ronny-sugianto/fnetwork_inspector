@@ -69,7 +69,7 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
           _filterMethods.contains(log.method.toUpperCase());
       final bool matchesPathSection =
           _filterPathSections.isEmpty ||
-          _filterPathSections.contains(_lastSegment(log.path));
+          _filterPathSections.contains(_pathSection(log.path));
       return matchesSearch && matchesStatus && matchesMethod && matchesPathSection;
     }).toList();
   }
@@ -101,18 +101,44 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
     return q == -1 ? path : path.substring(0, q);
   }
 
-  String? _lastSegment(String path) {
+  static final RegExp _uuidPattern = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false,
+  );
+  static final RegExp _hexPattern = RegExp(r'^[0-9a-f]+$', caseSensitive: false);
+  static final RegExp _digitsPattern = RegExp(r'^\d+$');
+  static final RegExp _longDigitRunPattern = RegExp(r'\d{4,}');
+  static final RegExp _alphanumericPattern = RegExp(r'^[A-Za-z0-9]+$');
+
+  /// True for segments that look like dynamic ids (numbers, uuids, hashes, codes like "Y002129").
+  bool _looksLikeDynamicId(String segment) {
+    if (_digitsPattern.hasMatch(segment)) return true;
+    if (_uuidPattern.hasMatch(segment)) return true;
+    if (segment.length >= 16 && _hexPattern.hasMatch(segment)) return true;
+    if (_alphanumericPattern.hasMatch(segment) &&
+        _longDigitRunPattern.hasMatch(segment)) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Last segment that isn't a dynamic id, walking backwards; falls back to the true last segment.
+  String? _pathSection(String path) {
     final List<String> segs = _stripQuery(path)
         .split('/')
         .where((String s) => s.isNotEmpty)
         .toList();
-    return segs.isEmpty ? null : segs.last;
+    if (segs.isEmpty) return null;
+    for (int i = segs.length - 1; i >= 0; i--) {
+      if (!_looksLikeDynamicId(segs[i])) return segs[i];
+    }
+    return segs.last;
   }
 
   List<String> get _availablePathSections {
     final Set<String> sections = <String>{};
     for (final NetworkLog log in _store.logs) {
-      final String? seg = _lastSegment(log.path);
+      final String? seg = _pathSection(log.path);
       if (seg != null) sections.add(seg);
     }
     if (sections.length <= 1) return <String>[];

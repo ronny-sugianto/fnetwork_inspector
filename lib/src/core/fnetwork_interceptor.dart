@@ -34,10 +34,8 @@ class FNetworkDioInterceptor extends Interceptor {
       options.extra[_startTimeKey] = startMs;
 
       final String fullUrl = options.uri.toString();
-      final String path = _extractPath(fullUrl, options.baseUrl);
-      final String baseUrl = options.baseUrl.isNotEmpty
-          ? options.baseUrl
-          : _extractBaseUrl(fullUrl);
+      final String path = _extractPath(fullUrl);
+      final String baseUrl = _extractBaseUrl(fullUrl);
 
       final NetworkLog log = NetworkLog(
         id: requestId,
@@ -136,7 +134,7 @@ class FNetworkDioInterceptor extends Interceptor {
     handler.next(err);
   }
 
-  String _extractPath(String fullUrl, String baseUrl) {
+  String _extractPath(String fullUrl) {
     try {
       final Uri uri = Uri.parse(fullUrl);
       String path = uri.path;
