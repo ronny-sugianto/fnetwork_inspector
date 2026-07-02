@@ -6,7 +6,7 @@ A Flutter network inspector for [Dio](https://pub.dev/packages/dio) and [http](h
 
 ## Screenshots
 
-### Mobile (Android)
+### Mobile (Android & IOS)
 
 <table>
   <tr>
@@ -15,9 +15,9 @@ A Flutter network inspector for [Dio](https://pub.dev/packages/dio) and [http](h
     <td align="center"><b>Log Detail</b></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/01_log_list.png" width="250"/></td>
-    <td><img src="docs/screenshots/02_filter_sheet.png" width="250"/></td>
-    <td><img src="docs/screenshots/03_log_detail.png" width="250"/></td>
+    <td><img src="doc/screenshots/01_log_list.png" width="250"/></td>
+    <td><img src="doc/screenshots/02_filter_sheet.png" width="250"/></td>
+    <td><img src="doc/screenshots/03_log_detail.png" width="250"/></td>
   </tr>
 </table>
 
@@ -29,8 +29,8 @@ A Flutter network inspector for [Dio](https://pub.dev/packages/dio) and [http](h
     <td align="center"><b>Inspector Panel</b></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/04_web_fab.png" width="360"/></td>
-    <td><img src="docs/screenshots/05_web_inspector.png" width="360"/></td>
+    <td><img src="doc/screenshots/04_web_fab.png" width="360"/></td>
+    <td><img src="doc/screenshots/05_web_inspector.png" width="360"/></td>
   </tr>
 </table>
 
