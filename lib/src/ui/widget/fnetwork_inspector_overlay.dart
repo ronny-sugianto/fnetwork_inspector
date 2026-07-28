@@ -46,6 +46,13 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
   late final AnimationController _controller;
   late final Animation<Offset> _slide;
 
+  static const double _fabSize = 52;
+  static const double _fabMargin = 16;
+
+  /// Top-left position of the FAB. Null until the first build, when it's
+  /// initialized to the bottom-right corner.
+  Offset? _fabOffset;
+
   static const Color _surface = Color(0xFF161B22);
   static const Color _border = Color(0xFF30363D);
   static const Color _textPrimary = Color(0xFFE6EDF3);
@@ -84,6 +91,23 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
 
   void _toggle() => _open ? _close() : _openPanel();
 
+  double _clampD(double value, double min, double max) =>
+      value < min ? min : (value > max ? max : value);
+
+  void _onFabPanUpdate(DragUpdateDetails details, Size size) {
+    final Offset current = _fabOffset ??
+        Offset(
+          size.width - _fabSize - _fabMargin,
+          size.height - _fabSize - _fabMargin,
+        );
+    setState(() {
+      _fabOffset = Offset(
+        _clampD(current.dx + details.delta.dx, 0, size.width - _fabSize),
+        _clampD(current.dy + details.delta.dy, 0, size.height - _fabSize),
+      );
+    });
+  }
+
   Color _statusColor(FNetworkStore store) {
     if (store.errorCount > 0) return _red;
     if (store.loadingCount > 0) return _orange;
@@ -95,50 +119,69 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
   Widget build(BuildContext context) {
     if (!widget.enabled) return widget.child;
 
-    return Stack(
-      children: <Widget>[
-        widget.child,
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final Size size = constraints.biggest;
+        final Offset offset = _fabOffset ??
+            Offset(
+              size.width - _fabSize - _fabMargin,
+              size.height - _fabSize - _fabMargin,
+            );
+        // Re-clamp on every build so a resized/rotated screen never leaves
+        // the FAB stranded off-screen.
+        final Offset fabPosition = Offset(
+          _clampD(offset.dx, 0, size.width - _fabSize),
+          _clampD(offset.dy, 0, size.height - _fabSize),
+        );
 
-        // Scrim — tap outside to close
-        if (_open)
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _close,
-              child: const ColoredBox(color: Color(0x80000000)),
-            ),
-          ),
+        return Stack(
+          children: <Widget>[
+            widget.child,
 
-        // Side panel
-        if (_open)
-          Positioned(
-            right: 0,
-            top: 0,
-            bottom: 0,
-            child: SlideTransition(
-              position: _slide,
-              child: _InspectorPanel(onClose: _close),
-            ),
-          ),
-
-        // Floating action button
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: ListenableBuilder(
-            listenable: FNetworkStore.instance,
-            builder: (BuildContext context, Widget? child) =>
-                _Fab(
-                  store: FNetworkStore.instance,
-                  statusColor: _statusColor(FNetworkStore.instance),
-                  textPrimary: _textPrimary,
-                  textMuted: _textMuted,
-                  surface: _surface,
-                  onTap: _toggle,
+            // Scrim — tap outside to close
+            if (_open)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _close,
+                  child: const ColoredBox(color: Color(0x80000000)),
                 ),
-          ),
-        ),
-      ],
+              ),
+
+            // Side panel
+            if (_open)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: SlideTransition(
+                  position: _slide,
+                  child: _InspectorPanel(onClose: _close),
+                ),
+              ),
+
+            // Floating action button — draggable anywhere on screen
+            Positioned(
+              left: fabPosition.dx,
+              top: fabPosition.dy,
+              child: ListenableBuilder(
+                listenable: FNetworkStore.instance,
+                builder: (BuildContext context, Widget? child) =>
+                    _Fab(
+                      store: FNetworkStore.instance,
+                      statusColor: _statusColor(FNetworkStore.instance),
+                      textPrimary: _textPrimary,
+                      textMuted: _textMuted,
+                      surface: _surface,
+                      onTap: _toggle,
+                      onPanUpdate: (DragUpdateDetails details) =>
+                          _onFabPanUpdate(details, size),
+                    ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -151,6 +194,7 @@ class _Fab extends StatelessWidget {
     required this.textMuted,
     required this.surface,
     required this.onTap,
+    required this.onPanUpdate,
   });
 
   final FNetworkStore store;
@@ -159,6 +203,7 @@ class _Fab extends StatelessWidget {
   final Color textMuted;
   final Color surface;
   final VoidCallback onTap;
+  final ValueChanged<DragUpdateDetails> onPanUpdate;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +211,7 @@ class _Fab extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onPanUpdate: onPanUpdate,
       child: Container(
         width: 52,
         height: 52,
