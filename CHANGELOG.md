@@ -1,3 +1,7 @@
+## 0.3.1
+
+- `FNetworkInspectorOverlay`'s floating button is now draggable — drag it anywhere on screen instead of it being pinned to the bottom-right corner.
+
 ## 0.3.0
 
 - Fixed: `FNetworkDioInterceptor` duplicated the base URL's path segment in the displayed/exported URL (URL, cURL, share report) when `BaseOptions.baseUrl` itself contained a path (e.g. `https://host/doctor/backend-api/doctor`). `baseUrl` is now always derived as `scheme://host[:port]` from the resolved request URI, matching `FNetworkHttpInterceptor`'s behavior.
