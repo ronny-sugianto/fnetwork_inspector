@@ -9,6 +9,17 @@ void main() async {
   await FNetworkInspector.initialize(
     enableInspection: kDebugMode,
     enableNotifications: false,
+    mockRules: <FMockRule>[
+      FMockRule.create(
+        method: 'GET',
+        pathPattern: '/posts',
+        statusCode: 200,
+        contentType: 'application/json',
+        body: '[{"id": 999, "title": "mocked post", "userId": 1}]',
+        delayMs: 300,
+        enabled: false,
+      ),
+    ],
   );
 
   runApp(const MyApp());
@@ -74,6 +85,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               child: const Text('Open Inspector'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) =>
+                      const NetworkMockListScreen(),
+                ),
+              ),
+              child: const Text('Open Mocks'),
             ),
           ],
         ),

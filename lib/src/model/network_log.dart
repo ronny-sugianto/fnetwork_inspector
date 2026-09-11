@@ -18,6 +18,8 @@ class NetworkLog {
     this.responseBody,
     this.durationMs,
     this.errorMessage,
+    this.isMocked = false,
+    this.isChaos = false,
   });
 
   final String id;
@@ -33,6 +35,12 @@ class NetworkLog {
   final String? responseBody;
   final int? durationMs;
   final String? errorMessage;
+
+  /// True when this entry was served from an [FMockRule] instead of the network.
+  final bool isMocked;
+
+  /// True when chaos mode forced this request to fail.
+  final bool isChaos;
 
   NetworkLog copyWith({
     NetworkLogStatus? status,
@@ -56,6 +64,8 @@ class NetworkLog {
       responseBody: responseBody ?? this.responseBody,
       durationMs: durationMs ?? this.durationMs,
       errorMessage: errorMessage ?? this.errorMessage,
+      isMocked: isMocked,
+      isChaos: isChaos,
     );
   }
 

@@ -1,3 +1,5 @@
+import 'package:fnetwork_inspector/src/core/fchaos_store.dart';
+import 'package:fnetwork_inspector/src/core/fmock_store.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_store.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_list_screen.dart';
 import 'package:flutter/material.dart';
@@ -165,18 +167,23 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
               left: fabPosition.dx,
               top: fabPosition.dy,
               child: ListenableBuilder(
-                listenable: FNetworkStore.instance,
-                builder: (BuildContext context, Widget? child) =>
-                    _Fab(
-                      store: FNetworkStore.instance,
-                      statusColor: _statusColor(FNetworkStore.instance),
-                      textPrimary: _textPrimary,
-                      textMuted: _textMuted,
-                      surface: _surface,
-                      onTap: _toggle,
-                      onPanUpdate: (DragUpdateDetails details) =>
-                          _onFabPanUpdate(details, size),
-                    ),
+                listenable: Listenable.merge(<Listenable>[
+                  FNetworkStore.instance,
+                  FMockStore.instance,
+                  FChaosStore.instance,
+                ]),
+                builder: (BuildContext context, Widget? child) => _Fab(
+                  store: FNetworkStore.instance,
+                  statusColor: _statusColor(FNetworkStore.instance),
+                  textPrimary: _textPrimary,
+                  textMuted: _textMuted,
+                  surface: _surface,
+                  mockActive: FMockStore.instance.activeCount > 0,
+                  chaosActive: FChaosStore.instance.enabled,
+                  onTap: _toggle,
+                  onPanUpdate: (DragUpdateDetails details) =>
+                      _onFabPanUpdate(details, size),
+                ),
               ),
             ),
           ],
@@ -193,6 +200,8 @@ class _Fab extends StatelessWidget {
     required this.textPrimary,
     required this.textMuted,
     required this.surface,
+    required this.mockActive,
+    required this.chaosActive,
     required this.onTap,
     required this.onPanUpdate,
   });
@@ -202,12 +211,20 @@ class _Fab extends StatelessWidget {
   final Color textPrimary;
   final Color textMuted;
   final Color surface;
+  final bool mockActive;
+  final bool chaosActive;
   final VoidCallback onTap;
   final ValueChanged<DragUpdateDetails> onPanUpdate;
+
+  static const Color _mock = Color(0xFFD29922);
+  static const Color _chaos = Color(0xFFF85149);
 
   @override
   Widget build(BuildContext context) {
     final int total = store.logs.length;
+    final Color? modeColor =
+        chaosActive ? _chaos : (mockActive ? _mock : null);
+    final Color ringColor = modeColor ?? statusColor;
 
     return GestureDetector(
       onTap: onTap,
@@ -218,9 +235,22 @@ class _Fab extends StatelessWidget {
         decoration: BoxDecoration(
           color: surface,
           shape: BoxShape.circle,
-          border: Border.all(color: statusColor, width: 1.5),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(color: Color(0x66000000), blurRadius: 12, offset: Offset(0, 4)),
+          border: Border.all(
+            color: ringColor,
+            width: modeColor != null ? 2 : 1.5,
+          ),
+          boxShadow: <BoxShadow>[
+            const BoxShadow(
+              color: Color(0x66000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+            if (modeColor != null)
+              BoxShadow(
+                color: modeColor.withValues(alpha: 0.6),
+                blurRadius: 16,
+                spreadRadius: 1.5,
+              ),
           ],
         ),
         child: Stack(
@@ -233,30 +263,60 @@ class _Fab extends StatelessWidget {
             ),
             if (total > 0)
               Positioned(
-                right: 5,
-                top: 5,
+                right: 3,
+                top: 3,
                 child: Container(
                   padding: const EdgeInsets.all(2),
-                  constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
                   decoration: BoxDecoration(
                     color: statusColor,
                     shape: BoxShape.circle,
+                    border: Border.all(color: surface, width: 1.5),
                   ),
                   child: Text(
                     total > 99 ? '99+' : '$total',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 7,
+                      fontSize: 8,
                       fontWeight: FontWeight.w800,
-                      height: 1.2,
+                      height: 1.1,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
+            if (mockActive || chaosActive)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 1,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    if (mockActive) _modeChip(Icons.bolt, _mock),
+                    if (mockActive && chaosActive) const SizedBox(width: 2),
+                    if (chaosActive)
+                      _modeChip(Icons.local_fire_department, _chaos),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _modeChip(IconData icon, Color color) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: surface, width: 1.5),
+      ),
+      child: Icon(icon, size: 9, color: Colors.white),
     );
   }
 }

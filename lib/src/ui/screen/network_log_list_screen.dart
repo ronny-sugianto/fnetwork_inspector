@@ -1,7 +1,17 @@
+import 'dart:convert';
+
+import 'package:fnetwork_inspector/src/core/fchaos_store.dart';
+import 'package:fnetwork_inspector/src/core/fmock_store.dart';
+import 'package:fnetwork_inspector/src/core/fnetwork_har.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_store.dart';
 import 'package:fnetwork_inspector/src/model/network_log.dart';
+import 'package:fnetwork_inspector/src/ui/screen/network_chaos_screen.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_detail_screen.dart';
+import 'package:fnetwork_inspector/src/ui/screen/network_mock_list_screen.dart';
+import 'package:fnetwork_inspector/src/ui/widget/fnetwork_credit_footer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 class NetworkLogListScreen extends StatefulWidget {
   const NetworkLogListScreen({super.key, this.onOverlayClose});
@@ -37,10 +47,79 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       (_filterMethods.isNotEmpty ? 1 : 0) +
       (_filterPathSections.isNotEmpty ? 1 : 0);
 
+  bool get _hasActiveFilter =>
+      _searchQuery.isNotEmpty ||
+      _filterStatus != null ||
+      _filterMethods.isNotEmpty ||
+      _filterPathSections.isNotEmpty;
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _shareHar({required bool filteredOnly}) async {
+    final List<NetworkLog> logs =
+        filteredOnly ? _filteredLogs : _store.logs.toList();
+    if (logs.isEmpty) {
+      _snack('Nothing to export');
+      return;
+    }
+    final String har = FNetworkHar.export(logs);
+    final String name = 'fnetwork-${DateTime.now().millisecondsSinceEpoch}.har';
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[
+            XFile.fromData(
+              utf8.encode(har),
+              mimeType: 'application/json',
+              name: name,
+            ),
+          ],
+          fileNameOverrides: <String>[name],
+          subject: 'Network session (HAR)',
+        ),
+      );
+    } catch (_) {
+      await SharePlus.instance.share(
+        ShareParams(text: har, subject: name),
+      );
+    }
+  }
+
+  void _copyHar() {
+    final List<NetworkLog> logs = _store.logs.toList();
+    if (logs.isEmpty) {
+      _snack('Nothing to export');
+      return;
+    }
+    Clipboard.setData(ClipboardData(text: FNetworkHar.export(logs)));
+    _snack('HAR copied to clipboard');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _store.addListener(_onStoreChanged);
+    FChaosStore.instance.addListener(_onStoreChanged);
+  }
+
   @override
   void dispose() {
+    _store.removeListener(_onStoreChanged);
+    FChaosStore.instance.removeListener(_onStoreChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
   }
 
   String _decodedPath(String path) {
@@ -394,6 +473,51 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           actions: <Widget>[
+            AnimatedBuilder(
+              animation: FMockStore.instance,
+              builder: (BuildContext context, _) {
+                final int active = FMockStore.instance.activeCount;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    IconButton(
+                      icon: const Icon(Icons.bolt_outlined, size: 20),
+                      tooltip: 'Response mocks',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NetworkMockListScreen(),
+                        ),
+                      ),
+                    ),
+                    if (active > 0)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: _green,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Text(
+                            '$active',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: _bg,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
             Stack(
               alignment: Alignment.center,
               children: <Widget>[
@@ -417,18 +541,58 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                   ),
               ],
             ),
-            IconButton(
-              icon: const Icon(Icons.refresh, size: 20),
-              tooltip: 'Refresh',
-              onPressed: () => setState(() {}),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20),
-              tooltip: 'Clear all',
-              onPressed: () {
-                _store.clear();
-                setState(() {});
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 20),
+              tooltip: 'More',
+              color: _surface,
+              onSelected: (String value) {
+                switch (value) {
+                  case 'chaos':
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const NetworkChaosScreen(),
+                      ),
+                    );
+                  case 'share_all':
+                    _shareHar(filteredOnly: false);
+                  case 'share_view':
+                    _shareHar(filteredOnly: true);
+                  case 'copy_all':
+                    _copyHar();
+                  case 'clear':
+                    _store.clear();
+                }
               },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: 'chaos',
+                  child: _MenuRow(
+                    Icons.whatshot,
+                    FChaosStore.instance.enabled
+                        ? 'Chaos mode (on)'
+                        : 'Chaos mode',
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  value: 'share_all',
+                  child: _MenuRow(Icons.ios_share, 'Share session (.har)'),
+                ),
+                if (_hasActiveFilter)
+                  const PopupMenuItem<String>(
+                    value: 'share_view',
+                    child: _MenuRow(Icons.filter_alt, 'Share current view (.har)'),
+                  ),
+                const PopupMenuItem<String>(
+                  value: 'copy_all',
+                  child: _MenuRow(Icons.copy_all, 'Copy session (.har)'),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  value: 'clear',
+                  child: _MenuRow(Icons.delete_outline, 'Clear all'),
+                ),
+              ],
             ),
           ],
           bottom: PreferredSize(
@@ -438,6 +602,7 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
         ),
         body: Column(
           children: <Widget>[
+            if (FChaosStore.instance.enabled) _buildChaosBanner(),
             _buildSummaryBar(),
             _buildSearchBar(),
             Expanded(
@@ -451,6 +616,40 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                         return _buildLogTile(context, logs[index]);
                       },
                     ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: const FNetworkCreditFooter(),
+      ),
+    );
+  }
+
+  Widget _buildChaosBanner() {
+    final FChaosStore c = FChaosStore.instance;
+    final int pct = (c.failRate * 100).round();
+    final String detail = <String>[
+      if (c.latencyMs > 0) '+${c.latencyMs}ms',
+      if (pct > 0) '$pct% → ${c.failStatus}',
+    ].join('  ·  ');
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const NetworkChaosScreen()),
+      ),
+      child: Container(
+        width: double.infinity,
+        color: _orange.withValues(alpha: 0.14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.whatshot, size: 13, color: _orange),
+            const SizedBox(width: 6),
+            Text(
+              detail.isEmpty ? 'Chaos mode active' : 'Chaos  ·  $detail',
+              style: const TextStyle(
+                color: _orange,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -648,36 +847,45 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                   ),
                   const SizedBox(height: 4),
                   Row(
+                    spacing: 6,
                     children: <Widget>[
-                      Text(
-                        log.statusLabel,
-                        style: TextStyle(color: statusColor, fontSize: 11),
+                      Expanded(
+                        child: Text(
+                          log.statusLabel,
+                          style: TextStyle(color: statusColor, fontSize: 11),
+                        ),
                       ),
+                      if (log.isMocked) ...<Widget>[
+                        _Pill('MOCK', _orange),
+                      ],
+                      if (log.isChaos) ...<Widget>[
+                        _Pill('CHAOS', _red),
+                      ],
                       if (matchSource != null) ...<Widget>[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _blue.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: _blue.withValues(alpha: 0.4),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
                             ),
-                          ),
-                          child: Text(
-                            '~ $matchSource',
-                            style: const TextStyle(
-                              color: _blue,
-                              fontSize: 9,
-                              fontFamily: 'monospace',
+                            decoration: BoxDecoration(
+                              color: _blue.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _blue.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Text(
+                              '~ $matchSource',
+                              style: const TextStyle(
+                                color: _blue,
+                                fontSize: 9,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ),
                         ),
                       ],
-                      const Spacer(),
                       Text(
                         _formatTime(log.startTime),
                         style: const TextStyle(color: _textMuted, fontSize: 11),
@@ -721,5 +929,54 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
     return '${local.hour.toString().padLeft(2, '0')}:'
         '${local.minute.toString().padLeft(2, '0')}:'
         '${local.second.toString().padLeft(2, '0')}';
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill(this.text, this.color);
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          fontFamily: 'monospace',
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Icon(icon, size: 16, color: const Color(0xFF8B949E)),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(color: Color(0xFFE6EDF3), fontSize: 13),
+        ),
+      ],
+    );
   }
 }
