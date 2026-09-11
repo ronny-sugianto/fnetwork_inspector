@@ -33,7 +33,7 @@
   - **Expand all / Collapse all**.
   - Tap a value to copy it; long-press any node for **Copy value / Copy path (`$.a.b[0]`) / Copy subtree**.
   - Non-JSON bodies fall back to plain selectable text; very large trees cap at 2000 rows with a hint to use Raw.
-  - The tree/raw area is capped in height and scrolls internally, so large payloads are always fully reachable instead of overflowing the card.
+  - Small/medium bodies render inline and scroll with the page. Only genuinely large ones (40+ tree rows, or 4000+ raw characters) get their own height-capped area with an always-visible scrollbar, so nothing competes with the page scroll and nothing looks cut off.
 
 **Other**
 

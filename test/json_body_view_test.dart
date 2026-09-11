@@ -54,15 +54,30 @@ void main() {
     expect(find.textContaining('inner'), findsWidgets);
   });
 
-  testWidgets('tree renders inside a bounded internal scroll view', (
+  testWidgets('large tree gets its own bounded, always-visible scrollbar', (
     WidgetTester tester,
   ) async {
     final String big =
         '{${List<String>.generate(200, (int i) => '"k$i":$i').join(',')}}';
     await _pump(tester, big);
     expect(find.byType(Scrollbar), findsOneWidget);
-    expect(find.byType(SingleChildScrollView), findsWidgets);
   });
+
+  testWidgets(
+    'small JSON body renders inline with no internal scrollbar '
+    '(regression: was appearing cut off)',
+    (WidgetTester tester) async {
+      await _pump(
+        tester,
+        '{"status":200,"message":"ok","data":[{"a":1},{"a":2}]}',
+      );
+      // Everything must be reachable via the outer page scroll alone — no
+      // nested scrollable competing for the drag gesture.
+      expect(find.byType(Scrollbar), findsNothing);
+      expect(find.textContaining('status'), findsOneWidget);
+      expect(find.textContaining('data'), findsOneWidget);
+    },
+  );
 
   testWidgets('search filters rows to matches and their ancestors', (
     WidgetTester tester,

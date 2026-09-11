@@ -20,6 +20,12 @@ const Color _matchBg = Color(0x66D29922);
 const int _maxRows = 2000;
 const int _autoExpandDepth = 3;
 
+// Below these, content renders inline and the outer page scrolls it — no
+// nested scroll view, so nothing can look "cut off" short of an actual bug.
+// Only genuinely large bodies get their own capped, always-scrollable area.
+const int _scrollThresholdRows = 40;
+const int _scrollThresholdChars = 4000;
+
 /// Renders an HTTP body as a collapsible, syntax-highlighted JSON tree with
 /// search and per-node copy. Falls back to plain selectable text when the
 /// source is not a JSON object or array.
@@ -237,15 +243,18 @@ class _JsonBodyViewState extends State<JsonBodyView> {
   @override
   Widget build(BuildContext context) {
     if (!_isJson) {
-      return _rawContainer(SelectableText(
-        widget.source,
-        style: const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 11,
-          color: _textPrimary,
-          height: 1.6,
+      return _rawContainer(
+        SelectableText(
+          widget.source,
+          style: const TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 11,
+            color: _textPrimary,
+            height: 1.6,
+          ),
         ),
-      ));
+        forceScroll: widget.source.length > _scrollThresholdChars,
+      );
     }
 
     final List<_Row> rows = _rawMode ? const <_Row>[] : _rows();
@@ -260,15 +269,18 @@ class _JsonBodyViewState extends State<JsonBodyView> {
         ],
         const SizedBox(height: 8),
         if (_rawMode)
-          _rawContainer(SelectableText(
-            _pretty,
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 11,
-              color: _textPrimary,
-              height: 1.6,
+          _rawContainer(
+            SelectableText(
+              _pretty,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 11,
+                color: _textPrimary,
+                height: 1.6,
+              ),
             ),
-          ))
+            forceScroll: _pretty.length > _scrollThresholdChars,
+          )
         else
           _rawContainer(
             Column(
@@ -293,27 +305,43 @@ class _JsonBodyViewState extends State<JsonBodyView> {
                   ),
               ],
             ),
+            forceScroll: rows.length > _scrollThresholdRows,
           ),
       ],
     );
   }
 
-  Widget _rawContainer(Widget child) {
-    // Cap the height and scroll internally so the tree is always fully
-    // reachable regardless of how the widget is nested.
+  Widget _rawContainer(Widget child, {required bool forceScroll}) {
+    final BoxDecoration decoration = BoxDecoration(
+      color: _bgDeep,
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: _border),
+    );
+
+    // Small/medium bodies render inline with no scroll view of their own —
+    // the outer page scrolls them, so there is no ambiguity about where a
+    // drag goes and nothing can appear to cut off short of a real bug.
+    if (!forceScroll) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: decoration,
+        child: child,
+      );
+    }
+
+    // Genuinely large bodies get a capped, always-scrollable area instead of
+    // making the whole card unmanageably tall.
     final double maxHeight =
         (MediaQuery.sizeOf(context).height * 0.55).clamp(240.0, 600.0);
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: _bgDeep,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _border),
-      ),
+      decoration: decoration,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
         child: Scrollbar(
           controller: _scrollCtrl,
+          thumbVisibility: true,
           child: SingleChildScrollView(
             controller: _scrollCtrl,
             padding: const EdgeInsets.all(12),
