@@ -45,6 +45,7 @@ A Flutter network inspector for [Dio](https://pub.dev/packages/dio) and [http](h
 - **Response mocking** — short-circuit any request with a synthetic response (custom status, content-type, body, latency); body can be text (JSON / HTML / XML) or base64 bytes (images, PDFs). Manage rules from the **Mocks** screen or `initialize(mockRules: [...])`
 - **Mock scenarios** — bundle rules into named sets ("logged out", "empty list", "server 500") and switch them in one tap; import/export as JSON; optional persistence across restarts via an `FMockPersistence` delegate
 - **Chaos mode** — simulate a connection type (2G, Edge, 3G, 4G, 5G, Offline) with realistic latency + throttled bandwidth, or tune latency/bandwidth/failure-rate manually; exercise loading / error / retry paths via `FNetworkInspector.chaos` in code or the inspector UI
+- **Tester guide** — optional, localisable "before you report a bug" dialog for QA / product testers, shown at app start and reopenable from the inspector menu
 - **cURL export**, full-report copy & share
 - **HAR export** — share the whole session (or the filtered view) as a `.har` file for Chrome DevTools / Charles / Proxyman / Postman; also `FNetworkHar.export(logs)` in code
 - **Web overlay** (`FNetworkInspectorOverlay`) — floating button at the bottom-right showing the live request count; tapping it opens a side panel with the full inspector
@@ -194,7 +195,53 @@ FNetworkInspector.chaos
 
 Mock rules always take precedence over chaos. Affected entries carry a `CHAOS` badge, and an amber banner shows while it's on. Like mocking, it's only consulted when `enableInspection` is `true`.
 
-### 7. (Optional) Wire up notification deep-links
+### 7. (Optional) Tester guide
+
+Show QA / product testers a short "before you report a bug" checklist when the app opens — so tickets arrive with a screen recording, a reproduction, the API log and the evidence, instead of just "there is a bug". It appears once per app start while the inspector is enabled (never in builds where `enableInspection` is `false`) and needs `FNetworkInspectorOverlay` from step 4.
+
+```dart
+await FNetworkInspector.initialize(
+  enableInspection: kDebugMode,
+  testerGuide: const FTesterGuide(),          // English defaults
+  inspectorStorage: PrefsInspectorStorage(),  // optional: remember "don't show again"
+);
+```
+
+The default checklist: record the screen → reproduce it → **check the data against the API response / database first** (the problem may be in the data, not the app) → inspect the API calls → attach the evidence (full report, cURL or `.har`) → describe it clearly (steps, expected vs actual, build, device).
+
+Everything is a plain parameter, so localising it is up to your app — build an `FTesterGuide` from your own translations:
+
+```dart
+FTesterGuide(
+  version: 2,                       // bump when the content changes → shown once more
+  title: l10n.guideTitle,
+  intro: l10n.guideIntro,
+  steps: <FTesterGuideStep>[
+    FTesterGuideStep(l10n.stepRecord, l10n.stepRecordHint),
+    // …
+  ],
+  confirmLabel: l10n.gotIt,
+  dontShowAgainLabel: l10n.dontShowAgain,
+  openInspectorLabel: l10n.openInspector,
+)
+```
+
+Testers can reopen it any time, or switch the startup popup off, from the inspector's ⋮ menu (**Tester guide** / **Show guide at startup**). To remember that choice across restarts, pass an `FInspectorStorage` — the package ships none, so back it with `shared_preferences`, a file, etc.:
+
+```dart
+class PrefsInspectorStorage implements FInspectorStorage {
+  @override
+  Future<String?> read(String key) async =>
+      (await SharedPreferences.getInstance()).getString(key);
+  @override
+  Future<void> write(String key, String value) async =>
+      (await SharedPreferences.getInstance()).setString(key, value);
+}
+```
+
+No overlay? Call `FNetworkInspector.showTesterGuide(context)` from your own menu or start-up flow.
+
+### 8. (Optional) Wire up notification deep-links
 
 To make push-notification taps open the correct screen, pass your navigator key once during startup:
 
@@ -214,6 +261,8 @@ Tapping a request notification will push the list screen and then the detail scr
 | `enableNotifications` | `bool` | `false` | Show a live notification during requests. On Android: persistent status-bar notification that updates in real time. On iOS: banner notification for each request (no sound). Automatically ignored when `enableInspection` is `false`. Has no effect on web. |
 | `onApiError` | `void Function(NetworkLog)?` | `null` | Callback invoked on every failed request (4xx, 5xx, or network error). Receives the completed `NetworkLog` — use it to forward errors to Sentry, Crashlytics, etc. |
 | `maxLogs` | `int` | `200` | How many requests are kept in memory; the oldest are evicted first. Raise it if you fire thousands of calls and need to browse further back (each log holds its bodies, so very large values cost memory). |
+| `testerGuide` | `FTesterGuide?` | `null` | "Before you report a bug" dialog for testers, shown once per app start (needs `FNetworkInspectorOverlay`). All text is customisable/localisable. Ignored when `enableInspection` is `false`. |
+| `inspectorStorage` | `FInspectorStorage?` | `null` | Storage delegate so the guide's "don't show again" choice survives restarts. The package ships no implementation. |
 | `mockRules` | `List<FMockRule>?` | `null` | Seed the in-memory mock registry. Ignored when `enableInspection` is `false` or when `mockPersistence` restored a non-empty set. Add/remove more later via `FNetworkInspector.mocks`. |
 | `mockScenarios` | `List<FMockScenario>?` | `null` | Seed named scenarios. Same rules as `mockRules`. |
 | `mockPersistence` | `FMockPersistence?` | `null` | Storage delegate so mock rules + scenarios survive app restarts. The package ships no implementation. |

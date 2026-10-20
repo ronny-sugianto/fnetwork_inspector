@@ -1,7 +1,10 @@
 import 'package:fnetwork_inspector/src/core/fchaos_store.dart';
 import 'package:fnetwork_inspector/src/core/fmock_store.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_store.dart';
+import 'package:fnetwork_inspector/src/core/ftester_guide_store.dart';
+import 'package:fnetwork_inspector/src/model/ftester_guide.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_list_screen.dart';
+import 'package:fnetwork_inspector/src/ui/widget/ftester_guide_dialog.dart';
 import 'package:flutter/material.dart';
 
 /// A wrapper widget that renders a small floating button in the bottom-right
@@ -45,6 +48,7 @@ class FNetworkInspectorOverlay extends StatefulWidget {
 class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
     with SingleTickerProviderStateMixin {
   bool _open = false;
+  bool _guideOpen = false;
   late final AnimationController _controller;
   late final Animation<Offset> _slide;
 
@@ -74,6 +78,16 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
       begin: const Offset(1.0, 0.0),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    // Tester guide: pop up once per app start while it's enabled.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.enabled) return;
+      final FTesterGuideStore guide = FTesterGuideStore.instance;
+      if (guide.shouldAutoShow) {
+        guide.markShownThisSession();
+        setState(() => _guideOpen = true);
+      }
+    });
   }
 
   @override
@@ -97,7 +111,8 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
       value < min ? min : (value > max ? max : value);
 
   void _onFabPanUpdate(DragUpdateDetails details, Size size) {
-    final Offset current = _fabOffset ??
+    final Offset current =
+        _fabOffset ??
         Offset(
           size.width - _fabSize - _fabMargin,
           size.height - _fabSize - _fabMargin,
@@ -124,7 +139,8 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final Size size = constraints.biggest;
-        final Offset offset = _fabOffset ??
+        final Offset offset =
+            _fabOffset ??
             Offset(
               size.width - _fabSize - _fabMargin,
               size.height - _fabSize - _fabMargin,
@@ -172,20 +188,58 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
                   FMockStore.instance,
                   FChaosStore.instance,
                 ]),
-                builder: (BuildContext context, Widget? child) => _Fab(
-                  store: FNetworkStore.instance,
-                  statusColor: _statusColor(FNetworkStore.instance),
-                  textPrimary: _textPrimary,
-                  textMuted: _textMuted,
-                  surface: _surface,
-                  mockActive: FMockStore.instance.activeCount > 0,
-                  chaosActive: FChaosStore.instance.enabled,
-                  onTap: _toggle,
-                  onPanUpdate: (DragUpdateDetails details) =>
-                      _onFabPanUpdate(details, size),
-                ),
+                builder:
+                    (BuildContext context, Widget? child) => _Fab(
+                      store: FNetworkStore.instance,
+                      statusColor: _statusColor(FNetworkStore.instance),
+                      textPrimary: _textPrimary,
+                      textMuted: _textMuted,
+                      surface: _surface,
+                      mockActive: FMockStore.instance.activeCount > 0,
+                      chaosActive: FChaosStore.instance.enabled,
+                      onTap: _toggle,
+                      onPanUpdate:
+                          (DragUpdateDetails details) =>
+                              _onFabPanUpdate(details, size),
+                    ),
               ),
             ),
+
+            // Tester guide — modal, above everything (incl. the FAB)
+            if (_guideOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: ColoredBox(
+                    color: const Color(0xB3000000),
+                    child: SafeArea(
+                      child: Center(
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: 440,
+                              maxHeight: size.height * 0.85,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: TesterGuideCard(
+                                guide:
+                                    FTesterGuideStore.instance.guide ??
+                                    const FTesterGuide(),
+                                onClose:
+                                    () => setState(() => _guideOpen = false),
+                                onOpenInspector: _openPanel,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -222,8 +276,7 @@ class _Fab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int total = store.logs.length;
-    final Color? modeColor =
-        chaosActive ? _chaos : (mockActive ? _mock : null);
+    final Color? modeColor = chaosActive ? _chaos : (mockActive ? _mock : null);
     final Color ringColor = modeColor ?? statusColor;
 
     return GestureDetector(
@@ -267,8 +320,10 @@ class _Fab extends StatelessWidget {
                 top: 3,
                 child: Container(
                   padding: const EdgeInsets.all(2),
-                  constraints:
-                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor,
                     shape: BoxShape.circle,
@@ -375,9 +430,7 @@ class _PanelRoot extends StatelessWidget {
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (!didPop) onClose();
       },
-      child: NetworkLogListScreen(
-        onOverlayClose: onClose,
-      ),
+      child: NetworkLogListScreen(onOverlayClose: onClose),
     );
   }
 }

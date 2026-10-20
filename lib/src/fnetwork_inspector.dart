@@ -5,6 +5,10 @@ import 'package:fnetwork_inspector/src/core/fmock_store.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_interceptor.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_notification_service.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_store.dart';
+import 'package:fnetwork_inspector/src/core/finspector_storage.dart';
+import 'package:fnetwork_inspector/src/core/ftester_guide_store.dart';
+import 'package:fnetwork_inspector/src/model/ftester_guide.dart';
+import 'package:fnetwork_inspector/src/ui/widget/ftester_guide_dialog.dart';
 import 'package:fnetwork_inspector/src/model/fmock_rule.dart';
 import 'package:fnetwork_inspector/src/model/fmock_scenario.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_detail_screen.dart';
@@ -72,6 +76,14 @@ class FNetworkInspector {
   ///   limit is hit the oldest are evicted. Raise it if you fire thousands of
   ///   calls and need to browse further back; each log holds its bodies, so
   ///   very large values cost memory.
+  /// - [testerGuide]: optional "before you report a bug" dialog for testers
+  ///   (QA / product). When set, it pops up once per app start — requires
+  ///   `FNetworkInspectorOverlay` — and can be switched off or reopened from
+  ///   the inspector's ⋮ menu. All text is customisable, so localising it is
+  ///   up to the host app. Ignored when [enableInspection] is false.
+  /// - [inspectorStorage]: optional storage delegate so the guide's "don't
+  ///   show again" choice survives restarts. The package ships no
+  ///   implementation — see [FInspectorStorage].
   /// - [mockRules]: optional list of [FMockRule]s to seed the mock registry
   ///   with. Ignored when [enableInspection] is false, or when [mockPersistence]
   ///   restored a non-empty set. More can be added at runtime via [mocks] or the
@@ -88,6 +100,8 @@ class FNetworkInspector {
     bool enableNotifications = false,
     FNetworkErrorCallback? onApiError,
     int maxLogs = 200,
+    FTesterGuide? testerGuide,
+    FInspectorStorage? inspectorStorage,
     List<FMockRule>? mockRules,
     List<FMockScenario>? mockScenarios,
     FMockPersistence? mockPersistence,
@@ -104,6 +118,12 @@ class FNetworkInspector {
     FNetworkStore.instance.maxLogs = maxLogs;
 
     if (enableInspection) {
+      if (testerGuide != null) {
+        await FTesterGuideStore.instance.configure(
+          testerGuide,
+          inspectorStorage,
+        );
+      }
       if (mockPersistence != null) {
         await FMockStore.instance.attachPersistence(mockPersistence);
       }
@@ -125,6 +145,21 @@ class FNetworkInspector {
     );
   }
 
+  /// Shows the tester guide in a dialog — for apps that don't use
+  /// `FNetworkInspectorOverlay`, or to reopen it from your own menu. Uses the
+  /// guide passed to [initialize], or the English defaults.
+  static Future<void> showTesterGuide(BuildContext context) {
+    return showTesterGuideDialog(
+      context,
+      onOpenInspector:
+          () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const NetworkLogListScreen(),
+            ),
+          ),
+    );
+  }
+
   /// Sets the navigator key so the inspector can handle notification taps
   /// and open the correct screen automatically.
   ///
@@ -134,9 +169,12 @@ class FNetworkInspector {
   /// ```
   static void setNavigatorKey(GlobalKey<NavigatorState> key) {
     FNetworkNotificationService.instance.setNavigationCallback(
-      onSummaryTap: () => key.currentState?.push(
-        MaterialPageRoute<void>(builder: (_) => const NetworkLogListScreen()),
-      ),
+      onSummaryTap:
+          () => key.currentState?.push(
+            MaterialPageRoute<void>(
+              builder: (_) => const NetworkLogListScreen(),
+            ),
+          ),
       onRequestTap: (String requestId) {
         key.currentState?.push(
           MaterialPageRoute<void>(builder: (_) => const NetworkLogListScreen()),
@@ -156,6 +194,7 @@ class FNetworkInspector {
     await FNetworkNotificationService.instance.cancelAll();
     FMockStore.instance.reset();
     FChaosStore.instance.reset();
+    FTesterGuideStore.instance.reset();
     _interceptor = null;
   }
 }

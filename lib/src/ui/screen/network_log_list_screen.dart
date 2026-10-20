@@ -4,11 +4,13 @@ import 'package:fnetwork_inspector/src/core/fchaos_store.dart';
 import 'package:fnetwork_inspector/src/core/fmock_store.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_har.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_store.dart';
+import 'package:fnetwork_inspector/src/core/ftester_guide_store.dart';
 import 'package:fnetwork_inspector/src/model/network_log.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_chaos_screen.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_detail_screen.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_mock_list_screen.dart';
 import 'package:fnetwork_inspector/src/ui/widget/fnetwork_credit_footer.dart';
+import 'package:fnetwork_inspector/src/ui/widget/ftester_guide_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -87,9 +89,7 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
         ),
       );
     } catch (_) {
-      await SharePlus.instance.share(
-        ShareParams(text: har, subject: name),
-      );
+      await SharePlus.instance.share(ShareParams(text: har, subject: name));
     }
   }
 
@@ -149,7 +149,10 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       final bool matchesPathSection =
           _filterPathSections.isEmpty ||
           _filterPathSections.contains(_pathSection(log.path));
-      return matchesSearch && matchesStatus && matchesMethod && matchesPathSection;
+      return matchesSearch &&
+          matchesStatus &&
+          matchesMethod &&
+          matchesPathSection;
     }).toList();
   }
 
@@ -184,7 +187,10 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
     caseSensitive: false,
   );
-  static final RegExp _hexPattern = RegExp(r'^[0-9a-f]+$', caseSensitive: false);
+  static final RegExp _hexPattern = RegExp(
+    r'^[0-9a-f]+$',
+    caseSensitive: false,
+  );
   static final RegExp _digitsPattern = RegExp(r'^\d+$');
   static final RegExp _longDigitRunPattern = RegExp(r'\d{4,}');
   static final RegExp _alphanumericPattern = RegExp(r'^[A-Za-z0-9]+$');
@@ -203,10 +209,8 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
 
   /// Last segment that isn't a dynamic id, walking backwards; falls back to the true last segment.
   String? _pathSection(String path) {
-    final List<String> segs = _stripQuery(path)
-        .split('/')
-        .where((String s) => s.isNotEmpty)
-        .toList();
+    final List<String> segs =
+        _stripQuery(path).split('/').where((String s) => s.isNotEmpty).toList();
     if (segs.isEmpty) return null;
     for (int i = segs.length - 1; i >= 0; i--) {
       if (!_looksLikeDynamicId(segs[i])) return segs[i];
@@ -315,7 +319,8 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                           ),
                         ),
                         const Spacer(),
-                        if (_filterMethods.isNotEmpty || _filterPathSections.isNotEmpty)
+                        if (_filterMethods.isNotEmpty ||
+                            _filterPathSections.isNotEmpty)
                           GestureDetector(
                             onTap: () {
                               setState(() {
@@ -326,10 +331,7 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                             },
                             child: const Text(
                               'Reset',
-                              style: TextStyle(
-                                color: _textMuted,
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(color: _textMuted, fontSize: 12),
                             ),
                           ),
                       ],
@@ -348,41 +350,44 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
-                        children: methods.map((String m) {
-                          final bool active = _filterMethods.contains(m);
-                          final Color c = _methodColor(m);
-                          return GestureDetector(
-                            onTap: () => toggleMethod(m),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: active
-                                    ? c.withValues(alpha: 0.15)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: active ? c : _border,
-                                  width: active ? 1.5 : 1,
+                        children:
+                            methods.map((String m) {
+                              final bool active = _filterMethods.contains(m);
+                              final Color c = _methodColor(m);
+                              return GestureDetector(
+                                onTap: () => toggleMethod(m),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        active
+                                            ? c.withValues(alpha: 0.15)
+                                            : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: active ? c : _border,
+                                      width: active ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    m,
+                                    style: TextStyle(
+                                      color: active ? c : _textMuted,
+                                      fontSize: 12,
+                                      fontWeight:
+                                          active
+                                              ? FontWeight.w700
+                                              : FontWeight.normal,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                m,
-                                style: TextStyle(
-                                  color: active ? c : _textMuted,
-                                  fontSize: 12,
-                                  fontWeight: active
-                                      ? FontWeight.w700
-                                      : FontWeight.normal,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                              );
+                            }).toList(),
                       ),
                     ],
                     if (sections.isNotEmpty) ...<Widget>[
@@ -399,40 +404,45 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
-                        children: sections.map((String s) {
-                          final bool active = _filterPathSections.contains(s);
-                          return GestureDetector(
-                            onTap: () => toggleSection(s),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: active
-                                    ? _blue.withValues(alpha: 0.15)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: active ? _blue : _border,
-                                  width: active ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Text(
+                        children:
+                            sections.map((String s) {
+                              final bool active = _filterPathSections.contains(
                                 s,
-                                style: TextStyle(
-                                  color: active ? _blue : _textMuted,
-                                  fontSize: 12,
-                                  fontWeight: active
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                  fontFamily: 'monospace',
+                              );
+                              return GestureDetector(
+                                onTap: () => toggleSection(s),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        active
+                                            ? _blue.withValues(alpha: 0.15)
+                                            : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: active ? _blue : _border,
+                                      width: active ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    s,
+                                    style: TextStyle(
+                                      color: active ? _blue : _textMuted,
+                                      fontSize: 12,
+                                      fontWeight:
+                                          active
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                              );
+                            }).toList(),
                       ),
                     ],
                   ],
@@ -461,13 +471,14 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          leading: widget.onOverlayClose != null
-              ? IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  tooltip: 'Close inspector',
-                  onPressed: widget.onOverlayClose,
-                )
-              : null,
+          leading:
+              widget.onOverlayClose != null
+                  ? IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    tooltip: 'Close inspector',
+                    onPressed: widget.onOverlayClose,
+                  )
+                  : null,
           title: const Text(
             'Network Inspector',
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
@@ -483,11 +494,12 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                     IconButton(
                       icon: const Icon(Icons.bolt_outlined, size: 20),
                       tooltip: 'Response mocks',
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const NetworkMockListScreen(),
-                        ),
-                      ),
+                      onPressed:
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const NetworkMockListScreen(),
+                            ),
+                          ),
                     ),
                     if (active > 0)
                       Positioned(
@@ -553,6 +565,12 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                         builder: (_) => const NetworkChaosScreen(),
                       ),
                     );
+                  case 'guide_view':
+                    showTesterGuideDialog(context);
+                  case 'guide_startup':
+                    FTesterGuideStore.instance.setShowAtStartup(
+                      !FTesterGuideStore.instance.showAtStartup,
+                    );
                   case 'share_all':
                     _shareHar(filteredOnly: false);
                   case 'share_view':
@@ -563,36 +581,61 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                     _store.clear();
                 }
               },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                PopupMenuItem<String>(
-                  value: 'chaos',
-                  child: _MenuRow(
-                    Icons.whatshot,
-                    FChaosStore.instance.enabled
-                        ? 'Chaos mode (on)'
-                        : 'Chaos mode',
-                  ),
-                ),
-                const PopupMenuDivider(),
-                const PopupMenuItem<String>(
-                  value: 'share_all',
-                  child: _MenuRow(Icons.ios_share, 'Share session (.har)'),
-                ),
-                if (_hasActiveFilter)
-                  const PopupMenuItem<String>(
-                    value: 'share_view',
-                    child: _MenuRow(Icons.filter_alt, 'Share current view (.har)'),
-                  ),
-                const PopupMenuItem<String>(
-                  value: 'copy_all',
-                  child: _MenuRow(Icons.copy_all, 'Copy session (.har)'),
-                ),
-                const PopupMenuDivider(),
-                const PopupMenuItem<String>(
-                  value: 'clear',
-                  child: _MenuRow(Icons.delete_outline, 'Clear all'),
-                ),
-              ],
+              itemBuilder:
+                  (BuildContext context) => <PopupMenuEntry<String>>[
+                    PopupMenuItem<String>(
+                      value: 'chaos',
+                      child: _MenuRow(
+                        Icons.whatshot,
+                        FChaosStore.instance.enabled
+                            ? 'Chaos mode (on)'
+                            : 'Chaos mode',
+                      ),
+                    ),
+                    if (FTesterGuideStore.instance.guide !=
+                        null) ...<PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'guide_view',
+                        child: _MenuRow(
+                          Icons.bug_report_outlined,
+                          'Tester guide',
+                        ),
+                      ),
+                      CheckedPopupMenuItem<String>(
+                        value: 'guide_startup',
+                        checked: FTesterGuideStore.instance.showAtStartup,
+                        child: const Text(
+                          'Show guide at startup',
+                          style: TextStyle(
+                            color: Color(0xFFE6EDF3),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
+                      value: 'share_all',
+                      child: _MenuRow(Icons.ios_share, 'Share session (.har)'),
+                    ),
+                    if (_hasActiveFilter)
+                      const PopupMenuItem<String>(
+                        value: 'share_view',
+                        child: _MenuRow(
+                          Icons.filter_alt,
+                          'Share current view (.har)',
+                        ),
+                      ),
+                    const PopupMenuItem<String>(
+                      value: 'copy_all',
+                      child: _MenuRow(Icons.copy_all, 'Copy session (.har)'),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
+                      value: 'clear',
+                      child: _MenuRow(Icons.delete_outline, 'Clear all'),
+                    ),
+                  ],
             ),
           ],
           bottom: PreferredSize(
@@ -606,16 +649,18 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
             _buildSummaryBar(),
             _buildSearchBar(),
             Expanded(
-              child: logs.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.separated(
-                      itemCount: logs.length,
-                      separatorBuilder: (BuildContext context, int index) =>
-                          Container(height: 1, color: _border),
-                      itemBuilder: (BuildContext context, int index) {
-                        return _buildLogTile(context, logs[index]);
-                      },
-                    ),
+              child:
+                  logs.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.separated(
+                        itemCount: logs.length,
+                        separatorBuilder:
+                            (BuildContext context, int index) =>
+                                Container(height: 1, color: _border),
+                        itemBuilder: (BuildContext context, int index) {
+                          return _buildLogTile(context, logs[index]);
+                        },
+                      ),
             ),
           ],
         ),
@@ -632,9 +677,10 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
       if (pct > 0) '$pct% → ${c.failStatus}',
     ].join('  ·  ');
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const NetworkChaosScreen()),
-      ),
+      onTap:
+          () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const NetworkChaosScreen()),
+          ),
       child: Container(
         width: double.infinity,
         color: _orange.withValues(alpha: 0.14),
@@ -747,15 +793,16 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
           hintText: 'Search path, body, status code...',
           hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
           prefixIcon: const Icon(Icons.search, color: _textMuted, size: 18),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.close, color: _textMuted, size: 16),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                  },
-                )
-              : null,
+          suffixIcon:
+              _searchQuery.isNotEmpty
+                  ? IconButton(
+                    icon: const Icon(Icons.close, color: _textMuted, size: 16),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  )
+                  : null,
           filled: true,
           fillColor: _surface,
           contentPadding: const EdgeInsets.symmetric(
@@ -786,11 +833,12 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
     final String? matchSource = _getMatchSource(log);
 
     return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => NetworkLogDetailScreen(requestId: log.id),
-        ),
-      ),
+      onTap:
+          () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => NetworkLogDetailScreen(requestId: log.id),
+            ),
+          ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -855,12 +903,8 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                           style: TextStyle(color: statusColor, fontSize: 11),
                         ),
                       ),
-                      if (log.isMocked) ...<Widget>[
-                        _Pill('MOCK', _orange),
-                      ],
-                      if (log.isChaos) ...<Widget>[
-                        _Pill('CHAOS', _red),
-                      ],
+                      if (log.isMocked) ...<Widget>[_Pill('MOCK', _orange)],
+                      if (log.isChaos) ...<Widget>[_Pill('CHAOS', _red)],
                       if (matchSource != null) ...<Widget>[
                         Expanded(
                           child: Container(
@@ -972,9 +1016,12 @@ class _MenuRow extends StatelessWidget {
       children: <Widget>[
         Icon(icon, size: 16, color: const Color(0xFF8B949E)),
         const SizedBox(width: 10),
-        Text(
-          label,
-          style: const TextStyle(color: Color(0xFFE6EDF3), fontSize: 13),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFFE6EDF3), fontSize: 13),
+          ),
         ),
       ],
     );

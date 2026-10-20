@@ -9,6 +9,8 @@ void main() async {
   await FNetworkInspector.initialize(
     enableInspection: kDebugMode,
     enableNotifications: false,
+    // Pops up once per app start for testers; reopen from the inspector's ⋮ menu.
+    testerGuide: const FTesterGuide(),
     mockRules: <FMockRule>[
       FMockRule.create(
         method: 'GET',

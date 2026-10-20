@@ -1,5 +1,11 @@
 ## 0.4.0
 
+**Tester guide**
+
+- Optional "before you report a bug" dialog for testers (QA / product), shown once per app start while the inspector is enabled: record the screen, reproduce it, **check the data against the API response / database first**, inspect the API calls, attach the evidence, and describe it clearly. Enable with `FNetworkInspector.initialize(testerGuide: const FTesterGuide())`; requires `FNetworkInspectorOverlay` (or call `FNetworkInspector.showTesterGuide(context)` yourself).
+- Fully customisable and localisable by the host app: title, intro, steps (title + description), and button/checkbox labels are all plain parameters of `FTesterGuide`; defaults are English. Bump `FTesterGuide.version` when you change the content and testers who chose "don't show again" will see it once more.
+- The inspector's ⋮ menu gets **Tester guide** (reopen it any time) and a **Show guide at startup** switch. The choice survives restarts if you pass an `FInspectorStorage` delegate (`inspectorStorage:`); without one it simply shows once per launch. Never active when `enableInspection` is false.
+
 **Response mocking**
 
 - Define in-memory [`FMockRule`]s that short-circuit matching requests with a synthetic response — custom status code, content-type, body, and optional latency. Works for both the Dio and `http` interceptors.
