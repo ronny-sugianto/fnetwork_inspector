@@ -94,12 +94,12 @@ void main() {
       await tester.pumpWidget(_app());
       await tester.pump();
 
-      expect(find.text('Before submitting a bug report'), findsOneWidget);
+      expect(find.text("You're in a testing environment"), findsOneWidget);
       expect(find.text('Verify the data source'), findsOneWidget);
 
       await tester.tap(find.text('Got it'));
       await tester.pump();
-      expect(find.text('Before submitting a bug report'), findsNothing);
+      expect(find.text("You're in a testing environment"), findsNothing);
     });
 
     testWidgets('is not shown again in the same session', (
@@ -114,7 +114,7 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(_app());
       await tester.pump();
-      expect(find.text('Before submitting a bug report'), findsNothing);
+      expect(find.text("You're in a testing environment"), findsNothing);
     });
 
     testWidgets('"don\'t show again" is stored', (WidgetTester tester) async {
@@ -137,13 +137,13 @@ void main() {
       FTesterGuideStore.instance.setShowAtStartup(false);
       await tester.pumpWidget(_app());
       await tester.pump();
-      expect(find.text('Before submitting a bug report'), findsNothing);
+      expect(find.text("You're in a testing environment"), findsNothing);
     });
 
     testWidgets('no guide configured → no dialog', (WidgetTester tester) async {
       await tester.pumpWidget(_app());
       await tester.pump();
-      expect(find.text('Before submitting a bug report'), findsNothing);
+      expect(find.text("You're in a testing environment"), findsNothing);
     });
 
     testWidgets('shows the intro, the highlighted note and all nine steps', (
@@ -154,7 +154,7 @@ void main() {
       await tester.pump();
 
       expect(
-        find.textContaining('Follow the intended flow, reproduce'),
+        find.textContaining('Please follow these instructions'),
         findsOneWidget,
       );
       expect(
@@ -235,7 +235,7 @@ void main() {
       await tester.pumpWidget(_app());
       await tester.pump();
       expect(find.textContaining('returned for further'), findsNothing);
-      expect(find.text('Before submitting a bug report'), findsOneWidget);
+      expect(find.text("You're in a testing environment"), findsOneWidget);
     });
   });
 
@@ -250,7 +250,7 @@ void main() {
       await tester.pumpWidget(_app());
       await tester.pump();
 
-      expect(find.text('Before submitting a bug report'), findsOneWidget);
+      expect(find.text("You're in a testing environment"), findsOneWidget);
       // Long content scrolls inside the dialog; the actions stay on screen.
       await tester.drag(
         find.text('Follow the intended flow'),
@@ -261,7 +261,7 @@ void main() {
 
       await tester.tap(find.text('Got it'));
       await tester.pump();
-      expect(find.text('Before submitting a bug report'), findsNothing);
+      expect(find.text("You're in a testing environment"), findsNothing);
     },
   );
 
@@ -280,7 +280,7 @@ void main() {
 
       await tester.tap(find.text('Tester guide'));
       await tester.pumpAndSettle();
-      expect(find.text('Before submitting a bug report'), findsOneWidget);
+      expect(find.text("You're in a testing environment"), findsOneWidget);
       // Opened from inside the inspector: no redundant "Open inspector".
       expect(find.text('Open inspector'), findsNothing);
       await tester.tap(find.text('Got it'));
@@ -319,6 +319,6 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('Before submitting a bug report'), findsOneWidget);
+    expect(find.text("You're in a testing environment"), findsOneWidget);
   });
 }

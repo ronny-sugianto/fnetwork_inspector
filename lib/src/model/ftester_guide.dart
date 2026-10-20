@@ -19,11 +19,13 @@ class FTesterGuideStep {
 class FTesterGuide {
   const FTesterGuide({
     this.version = 1,
-    this.title = 'Before submitting a bug report',
+    this.title = "You're in a testing environment",
     this.intro =
-        'Follow the intended flow, reproduce the issue, verify the expected '
-            'behavior, and validate the relevant API response. Attach sufficient '
-            'evidence to help the developer investigate.',
+        'Thanks for testing! Please follow these instructions before '
+            'submitting a bug report: follow the intended flow, reproduce the '
+            'issue, verify the expected behavior, and validate the relevant API '
+            'response. Attach sufficient evidence to help the developer '
+            'investigate.',
     this.note =
         'Reports that lack clear reproduction steps or sufficient evidence '
             'may be returned for further investigation.',

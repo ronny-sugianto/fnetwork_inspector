@@ -197,7 +197,7 @@ Mock rules always take precedence over chaos. Affected entries carry a `CHAOS` b
 
 ### 7. (Optional) Tester guide
 
-Show QA / product testers a short "before submitting a bug report" checklist when the app opens — so tickets arrive with a screen recording, a reproduction, the API log and the evidence, instead of just "there is a bug". It appears once per app start while the inspector is enabled (never in builds where `enableInspection` is `false`) and needs `FNetworkInspectorOverlay` from step 4.
+Show QA / product testers a short bug-reporting checklist ("You're in a testing environment — please follow these instructions") when the app opens — so tickets arrive with a screen recording, a reproduction, the API log and the evidence, instead of just "there is a bug". It appears once per app start while the inspector is enabled (never in builds where `enableInspection` is `false`) and needs `FNetworkInspectorOverlay` from step 4.
 
 ```dart
 await FNetworkInspector.initialize(
@@ -207,7 +207,7 @@ await FNetworkInspector.initialize(
 );
 ```
 
-The default dialog opens with a short notice (follow the intended flow, reproduce, verify the expected behavior, validate the API response; reports without clear steps or evidence may be returned), then nine steps:
+The default dialog opens with a friendly heading ("You're in a testing environment") and a short intro asking testers to follow the instructions before submitting a bug report (follow the intended flow, reproduce, verify the expected behavior, validate the API response), plus a note that reports without clear steps or evidence may be returned. Then nine steps:
 
 1. **Follow the intended flow** — and confirm the prerequisites (permissions, data, initial status, previous actions)
 2. **Record your screen**
@@ -274,7 +274,7 @@ Tapping a request notification will push the list screen and then the detail scr
 | `enableNotifications` | `bool` | `false` | Show a live notification during requests. On Android: persistent status-bar notification that updates in real time. On iOS: banner notification for each request (no sound). Automatically ignored when `enableInspection` is `false`. Has no effect on web. |
 | `onApiError` | `void Function(NetworkLog)?` | `null` | Callback invoked on every failed request (4xx, 5xx, or network error). Receives the completed `NetworkLog` — use it to forward errors to Sentry, Crashlytics, etc. |
 | `maxLogs` | `int` | `200` | How many requests are kept in memory; the oldest are evicted first. Raise it if you fire thousands of calls and need to browse further back (each log holds its bodies, so very large values cost memory). |
-| `testerGuide` | `FTesterGuide?` | `null` | "Before submitting a bug report" dialog for testers, shown once per app start (needs `FNetworkInspectorOverlay`). All text is customisable/localisable. Ignored when `enableInspection` is `false`. |
+| `testerGuide` | `FTesterGuide?` | `null` | "You're in a testing environment" instructions dialog for testers, shown once per app start (needs `FNetworkInspectorOverlay`). All text is customisable/localisable. Ignored when `enableInspection` is `false`. |
 | `inspectorStorage` | `FInspectorStorage?` | `null` | Storage delegate so the guide's "don't show again" choice survives restarts. The package ships no implementation. |
 | `mockRules` | `List<FMockRule>?` | `null` | Seed the in-memory mock registry. Ignored when `enableInspection` is `false` or when `mockPersistence` restored a non-empty set. Add/remove more later via `FNetworkInspector.mocks`. |
 | `mockScenarios` | `List<FMockScenario>?` | `null` | Seed named scenarios. Same rules as `mockRules`. |
