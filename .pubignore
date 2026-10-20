@@ -1,3 +1,10 @@
 example/.dart_tool/
 example/.flutter-plugins-dependencies
 .idea/
+
+# build output and tool caches (a .pubignore replaces .gitignore, so repeat them)
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+example/build/
