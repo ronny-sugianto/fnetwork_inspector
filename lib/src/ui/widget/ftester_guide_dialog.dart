@@ -8,6 +8,7 @@ const Color _textPrimary = Color(0xFFE6EDF3);
 const Color _textMuted = Color(0xFF8B949E);
 const Color _blue = Color(0xFF58A6FF);
 const Color _orange = Color(0xFFD29922);
+const Color _red = Color(0xFFF85149);
 
 /// The "before you report a bug" card. Used inline by
 /// `FNetworkInspectorOverlay` (no Navigator needed) and wrapped in a dialog by
@@ -15,12 +16,16 @@ const Color _orange = Color(0xFFD29922);
 class TesterGuideCard extends StatefulWidget {
   const TesterGuideCard({
     super.key,
-    required this.guide,
+    required this.guides,
     required this.onClose,
+    this.initialIndex = 0,
     this.onOpenInspector,
   });
 
-  final FTesterGuide guide;
+  /// One guide per audience. With more than one, a switcher is shown and the
+  /// choice is remembered via [FTesterGuideStore.select].
+  final List<FTesterGuide> guides;
+  final int initialIndex;
 
   /// Called after the tester dismisses the guide.
   final VoidCallback onClose;
@@ -35,6 +40,12 @@ class TesterGuideCard extends StatefulWidget {
 
 class _TesterGuideCardState extends State<TesterGuideCard> {
   bool _dontShowAgain = false;
+  late int _index = widget.initialIndex.clamp(0, widget.guides.length - 1);
+
+  void _select(int i) {
+    setState(() => _index = i);
+    FTesterGuideStore.instance.select(i);
+  }
 
   void _finish({bool openInspector = false}) {
     if (_dontShowAgain) FTesterGuideStore.instance.setShowAtStartup(false);
@@ -44,7 +55,7 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
 
   @override
   Widget build(BuildContext context) {
-    final FTesterGuide g = widget.guide;
+    final FTesterGuide g = widget.guides[_index];
     return Container(
       decoration: BoxDecoration(
         color: _surface,
@@ -75,6 +86,17 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
               ),
             ],
           ),
+          if (widget.guides.length > 1) ...<Widget>[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: <Widget>[
+                for (int i = 0; i < widget.guides.length; i++)
+                  _audienceChip(i, widget.guides[i]),
+              ],
+            ),
+          ],
           const SizedBox(height: 10),
           // Intro, note and steps share one scroll area so small screens keep
           // as much room as possible for the steps; title and buttons stay put.
@@ -153,82 +175,31 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
           ),
           const SizedBox(height: 8),
           // Wrap (not Row) so long translated labels flow onto a second line.
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              if (widget.onOpenInspector != null)
-                OutlinedButton(
-                  onPressed: () => _finish(openInspector: true),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _blue,
-                    side: const BorderSide(color: _border),
-                  ),
-                  child: Text(g.openInspectorLabel),
-                ),
-              FilledButton(
-                onPressed: _finish,
-                style: FilledButton.styleFrom(backgroundColor: _blue),
-                child: Text(
-                  g.confirmLabel,
-                  style: const TextStyle(color: Color(0xFF0D1117)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _step(int n, FTesterGuideStep step) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            width: 20,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _blue.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$n',
-              style: const TextStyle(
-                color: _blue,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Full width so `alignment: end` actually right-aligns the buttons.
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
               children: <Widget>[
-                Text(
-                  step.title,
-                  style: const TextStyle(
-                    color: _textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                if (widget.onOpenInspector != null)
+                  OutlinedButton(
+                    onPressed: () => _finish(openInspector: true),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _blue,
+                      side: const BorderSide(color: _border),
+                    ),
+                    child: Text(g.openInspectorLabel),
+                  ),
+                FilledButton(
+                  onPressed: _finish,
+                  style: FilledButton.styleFrom(backgroundColor: _blue),
+                  child: Text(
+                    g.confirmLabel,
+                    style: const TextStyle(color: Color(0xFF0D1117)),
                   ),
                 ),
-                if (step.description != null) ...<Widget>[
-                  const SizedBox(height: 2),
-                  Text(
-                    step.description!,
-                    style: const TextStyle(
-                      color: _textMuted,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -236,9 +207,108 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
       ),
     );
   }
+
+  Widget _audienceChip(int i, FTesterGuide guide) {
+    final bool active = i == _index;
+    return GestureDetector(
+      onTap: () => _select(i),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? _blue.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: active ? _blue : _border,
+            width: active ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          guide.label ?? 'Guide ${i + 1}',
+          style: TextStyle(
+            color: active ? _blue : _textMuted,
+            fontSize: 12,
+            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _step(int n, FTesterGuideStep step) {
+    final Color accent = step.emphasize ? _red : _blue;
+    final Widget content = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: 20,
+          height: 20,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child:
+              step.emphasize
+                  ? Icon(Icons.warning_amber_rounded, size: 13, color: accent)
+                  : Text(
+                    '$n',
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                step.title,
+                style: const TextStyle(
+                  color: _textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (step.description != null) ...<Widget>[
+                const SizedBox(height: 2),
+                Text(
+                  step.description!,
+                  style: const TextStyle(
+                    color: _textMuted,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child:
+          step.emphasize
+              ? Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _red.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _red.withValues(alpha: 0.45)),
+                ),
+                child: content,
+              )
+              : content,
+    );
+  }
 }
 
-/// Shows the tester guide in a regular dialog. Uses the guide configured via
+/// Shows the tester guide in a regular dialog. Uses the guide(s) configured via
 /// `FNetworkInspector.initialize(testerGuide: ...)` unless [guide] is given,
 /// falling back to the English defaults.
 Future<void> showTesterGuideDialog(
@@ -260,14 +330,19 @@ Future<void> showTesterGuideDialog(
               maxHeight: MediaQuery.sizeOf(ctx).height * 0.85,
             ),
             child: TesterGuideCard(
-              guide:
-                  guide ??
-                  FTesterGuideStore.instance.guide ??
-                  const FTesterGuide(),
+              guides: guide != null ? <FTesterGuide>[guide] : _storeGuides(),
+              initialIndex:
+                  guide != null ? 0 : FTesterGuideStore.instance.selectedIndex,
               onClose: () => Navigator.of(ctx).pop(),
               onOpenInspector: onOpenInspector,
             ),
           ),
         ),
   );
+}
+
+/// Guides to show: the configured ones, or the English defaults.
+List<FTesterGuide> _storeGuides() {
+  final List<FTesterGuide> guides = FTesterGuideStore.instance.guides;
+  return guides.isEmpty ? const <FTesterGuide>[FTesterGuide()] : guides;
 }

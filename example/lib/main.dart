@@ -10,7 +10,7 @@ void main() async {
     enableInspection: kDebugMode,
     enableNotifications: false,
     // Pops up once per app start for testers; reopen from the inspector's ⋮ menu.
-    testerGuide: const FTesterGuide(),
+    testerGuides: const <FTesterGuide>[FTesterGuide.qa, FTesterGuide.pentest],
     mockRules: <FMockRule>[
       FMockRule.create(
         method: 'GET',

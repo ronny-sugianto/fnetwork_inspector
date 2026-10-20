@@ -208,8 +208,8 @@ void main() {
           'Verify the data source',
           'Inspect API calls and errors',
           'Check related behavior',
-          'Attach evidence, protect sensitive data',
-          'Write an actionable report',
+          'Attach evidence and protect sensitive data',
+          'Write an actionable report and retest fixes',
         ],
       );
     });
@@ -261,6 +261,95 @@ void main() {
       expect(find.text("You're in a testing environment"), findsNothing);
     },
   );
+
+  group('audiences (several guides, one build)', () {
+    testWidgets('a single guide shows no switcher', (
+      WidgetTester tester,
+    ) async {
+      await FTesterGuideStore.instance.configure(FTesterGuide.qa, null);
+      await tester.pumpWidget(_app());
+      await tester.pump();
+      expect(find.text('QA / Product'), findsNothing);
+      expect(find.text('Pentest'), findsNothing);
+    });
+
+    testWidgets('switcher changes the content and is remembered', (
+      WidgetTester tester,
+    ) async {
+      final _MemStorage storage = _MemStorage();
+      await FTesterGuideStore.instance.configureAll(<FTesterGuide>[
+        FTesterGuide.qa,
+        FTesterGuide.pentest,
+      ], storage);
+      await tester.pumpWidget(_app());
+      await tester.pump();
+
+      expect(find.text('QA / Product'), findsOneWidget);
+      expect(find.text('Follow the intended flow'), findsOneWidget);
+      expect(find.text('Confirm scope and authorization'), findsNothing);
+
+      await tester.tap(find.text('Pentest'));
+      await tester.pump();
+      expect(find.text('Confirm scope and authorization'), findsOneWidget);
+      expect(find.text('Follow the intended flow'), findsNothing);
+      expect(FTesterGuideStore.instance.selectedIndex, 1);
+      expect(
+        jsonDecode(storage.data[FTesterGuideStore.storageKey]!),
+        containsPair('selected', 'Pentest'),
+      );
+
+      // Next launch: the last audience is restored.
+      FTesterGuideStore.instance.reset();
+      await FTesterGuideStore.instance.configureAll(<FTesterGuide>[
+        FTesterGuide.qa,
+        FTesterGuide.pentest,
+      ], storage);
+      expect(FTesterGuideStore.instance.guide?.label, 'Pentest');
+    });
+
+    test('bumping any guide version shows the guide once more', () async {
+      final _MemStorage storage = _MemStorage();
+      final FTesterGuideStore s = FTesterGuideStore.instance;
+      await s.configureAll(const <FTesterGuide>[
+        FTesterGuide(label: 'A'),
+        FTesterGuide(label: 'B'),
+      ], storage);
+      s.setShowAtStartup(false);
+      expect(s.showAtStartup, isFalse);
+
+      s.reset();
+      await s.configureAll(const <FTesterGuide>[
+        FTesterGuide(label: 'A'),
+        FTesterGuide(label: 'B', version: 2),
+      ], storage);
+      expect(s.contentVersion, 2);
+      expect(s.showAtStartup, isTrue);
+    });
+
+    test(
+      'the pentest guide does not tell testers to stay on the happy path',
+      () {
+        final Iterable<String> titles = FTesterGuide.pentest.steps.map(
+          (FTesterGuideStep s) => s.title,
+        );
+        expect(titles, isNot(contains('Follow the intended flow')));
+        expect(titles, contains('Confirm scope and authorization'));
+      },
+    );
+
+    testWidgets('sensitive-data steps are highlighted as warnings', (
+      WidgetTester tester,
+    ) async {
+      await FTesterGuideStore.instance.configure(FTesterGuide.qa, null);
+      await tester.pumpWidget(_app());
+      await tester.pump();
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(
+        FTesterGuide.defaultSteps.where((FTesterGuideStep s) => s.emphasize),
+        hasLength(1),
+      );
+    });
+  });
 
   group('inspector menu', () {
     testWidgets('can reopen the guide and toggle startup', (

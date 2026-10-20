@@ -81,6 +81,10 @@ class FNetworkInspector {
   ///   `FNetworkInspectorOverlay` — and can be switched off or reopened from
   ///   the inspector's ⋮ menu. All text is customisable, so localising it is
   ///   up to the host app. Ignored when [enableInspection] is false.
+  /// - [testerGuides]: several guides for different audiences that share one
+  ///   build (e.g. `[FTesterGuide.qa, FTesterGuide.pentest]`). The dialog shows
+  ///   a switcher and remembers the last choice. Combined with [testerGuide]
+  ///   if both are given.
   /// - [inspectorStorage]: optional storage delegate so the guide's "don't
   ///   show again" choice survives restarts. The package ships no
   ///   implementation — see [FInspectorStorage].
@@ -101,6 +105,7 @@ class FNetworkInspector {
     FNetworkErrorCallback? onApiError,
     int maxLogs = 200,
     FTesterGuide? testerGuide,
+    List<FTesterGuide>? testerGuides,
     FInspectorStorage? inspectorStorage,
     List<FMockRule>? mockRules,
     List<FMockScenario>? mockScenarios,
@@ -118,9 +123,13 @@ class FNetworkInspector {
     FNetworkStore.instance.maxLogs = maxLogs;
 
     if (enableInspection) {
-      if (testerGuide != null) {
-        await FTesterGuideStore.instance.configure(
-          testerGuide,
+      final List<FTesterGuide> guides = <FTesterGuide>[
+        if (testerGuide != null) testerGuide,
+        if (testerGuides != null) ...testerGuides,
+      ];
+      if (guides.isNotEmpty) {
+        await FTesterGuideStore.instance.configureAll(
+          guides,
           inspectorStorage,
         );
       }
