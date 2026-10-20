@@ -39,6 +39,9 @@
 **Other**
 
 - Small tappable **credit line** (`rons.my.id`) in a footer strip on every inspector screen. It's also attached to content *only when it leaves the app* — copied/shared cURL and full report, exported HAR (`creator.comment`) and mock/scenario JSON (`_credit`) — never shown in the on-screen previews.
+- Fixed: with a burst of requests, a detail page you had open could suddenly turn blank / "Request not found" — the log was evicted from the 200-entry history. The page now keeps showing the last captured data with an "Evicted from history" notice. The history size is configurable via `FNetworkInspector.initialize(maxLogs: ...)` (default 200).
+- Improved performance under heavy traffic: the detail page rebuilds only when its own log changes (not on every request in the app), and the store caches its log snapshot and status counts instead of recomputing them several times per build.
+- Fixed: the Body card header showed a second copy icon on top of the viewer's own — removed. Non-JSON bodies get a copy button inside the viewer instead.
 - Fixed: `NetworkLogListScreen` and `NetworkLogDetailScreen` didn't refresh while open — an in-flight request stayed on "Requesting…" until the screen was closed and reopened. Both screens now listen to `FNetworkStore` and update live as requests complete.
 
 ## 0.3.1

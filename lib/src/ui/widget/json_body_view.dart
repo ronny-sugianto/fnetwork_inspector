@@ -250,17 +250,30 @@ class _JsonBodyViewState extends State<JsonBodyView> {
   @override
   Widget build(BuildContext context) {
     if (!_isJson) {
-      return _rawContainer(
-        SelectableText(
-          widget.source,
-          style: const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: _textPrimary,
-            height: 1.6,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Align(
+            alignment: Alignment.centerRight,
+            child: _iconBtn(
+              Icons.copy_all,
+              'Copy body',
+              () => _copy(widget.source, 'Body'),
+            ),
           ),
-        ),
-        forceScroll: widget.source.length > _scrollThresholdChars,
+          _rawContainer(
+            SelectableText(
+              widget.source,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 11,
+                color: _textPrimary,
+                height: 1.6,
+              ),
+            ),
+            forceScroll: widget.source.length > _scrollThresholdChars,
+          ),
+        ],
       );
     }
 

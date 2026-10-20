@@ -213,6 +213,7 @@ Tapping a request notification will push the list screen and then the detail scr
 | `enableInspection` | `bool` | `true` | Master switch. When `false`, the interceptor is a complete no-op — no logging, no notifications. |
 | `enableNotifications` | `bool` | `false` | Show a live notification during requests. On Android: persistent status-bar notification that updates in real time. On iOS: banner notification for each request (no sound). Automatically ignored when `enableInspection` is `false`. Has no effect on web. |
 | `onApiError` | `void Function(NetworkLog)?` | `null` | Callback invoked on every failed request (4xx, 5xx, or network error). Receives the completed `NetworkLog` — use it to forward errors to Sentry, Crashlytics, etc. |
+| `maxLogs` | `int` | `200` | How many requests are kept in memory; the oldest are evicted first. Raise it if you fire thousands of calls and need to browse further back (each log holds its bodies, so very large values cost memory). |
 | `mockRules` | `List<FMockRule>?` | `null` | Seed the in-memory mock registry. Ignored when `enableInspection` is `false` or when `mockPersistence` restored a non-empty set. Add/remove more later via `FNetworkInspector.mocks`. |
 | `mockScenarios` | `List<FMockScenario>?` | `null` | Seed named scenarios. Same rules as `mockRules`. |
 | `mockPersistence` | `FMockPersistence?` | `null` | Storage delegate so mock rules + scenarios survive app restarts. The package ships no implementation. |

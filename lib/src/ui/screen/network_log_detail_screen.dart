@@ -136,8 +136,9 @@ class NetworkLogDetailScreen extends StatelessWidget {
     );
     final FMockRule? result = await Navigator.of(context).push(
       MaterialPageRoute<FMockRule>(
-        builder: (_) =>
-            MockRuleEditScreen(initial: seed, title: 'Mock this response'),
+        builder:
+            (_) =>
+                MockRuleEditScreen(initial: seed, title: 'Mock this response'),
       ),
     );
     if (result == null || !context.mounted) return;
@@ -153,18 +154,19 @@ class NetworkLogDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge(<Listenable>[
-        FNetworkStore.instance,
-        FMockStore.instance,
-      ]),
-      builder: (BuildContext context, _) => _buildContent(context),
+    return _DetailHost(
+      requestId: requestId,
+      builder:
+          (BuildContext context, NetworkLog? log, bool evicted) =>
+              _buildContent(context, log, evicted: evicted),
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    final NetworkLog? log = FNetworkStore.instance.getLog(requestId);
-
+  Widget _buildContent(
+    BuildContext context,
+    NetworkLog? log, {
+    required bool evicted,
+  }) {
     if (log == null) {
       return Theme(
         data: ThemeData.dark().copyWith(scaffoldBackgroundColor: _bg),
@@ -187,8 +189,10 @@ class NetworkLogDetailScreen extends StatelessWidget {
     final Color methodColor = _methodColor(log.method);
     final String curlCommand = _buildCurl(log);
     final String fullReport = _buildFullReport(log);
-    final FMockRule? mockRule =
-        FMockStore.instance.ruleFor(log.method, log.path);
+    final FMockRule? mockRule = FMockStore.instance.ruleFor(
+      log.method,
+      log.path,
+    );
 
     return Theme(
       data: ThemeData.dark().copyWith(
@@ -256,12 +260,13 @@ class NetworkLogDetailScreen extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.share_outlined, size: 20),
                 tooltip: 'Share full report',
-                onPressed: () => SharePlus.instance.share(
-                  ShareParams(
-                    text: _reportForShare(fullReport),
-                    subject: 'API Report: ${log.shortLabel}',
-                  ),
-                ),
+                onPressed:
+                    () => SharePlus.instance.share(
+                      ShareParams(
+                        text: _reportForShare(fullReport),
+                        subject: 'API Report: ${log.shortLabel}',
+                      ),
+                    ),
               ),
               IconButton(
                 icon: const Icon(Icons.copy_outlined, size: 20),
@@ -296,17 +301,44 @@ class NetworkLogDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          body: TabBarView(
+          body: Column(
             children: <Widget>[
-              _OverviewTab(
-                log: log,
-                statusColor: statusColor,
-                curlCommand: curlCommand,
-                fullReport: fullReport,
-                mockRule: mockRule,
+              if (evicted)
+                Container(
+                  width: double.infinity,
+                  color: _orange.withValues(alpha: 0.14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    'Evicted from history (limit '
+                    '${FNetworkStore.instance.maxLogs} logs) — '
+                    'showing the last captured data.',
+                    style: const TextStyle(color: _orange, fontSize: 11),
+                  ),
+                ),
+              Expanded(
+                child: TabBarView(
+                  children: <Widget>[
+                    _OverviewTab(
+                      log: log,
+                      statusColor: statusColor,
+                      curlCommand: curlCommand,
+                      fullReport: fullReport,
+                      mockRule: mockRule,
+                    ),
+                    _BodyTab(
+                      headers: log.requestHeaders,
+                      body: log.requestBody,
+                    ),
+                    _BodyTab(
+                      headers: log.responseHeaders,
+                      body: log.responseBody,
+                    ),
+                  ],
+                ),
               ),
-              _BodyTab(headers: log.requestHeaders, body: log.requestBody),
-              _BodyTab(headers: log.responseHeaders, body: log.responseBody),
             ],
           ),
           bottomNavigationBar: const FNetworkCreditFooter(),
@@ -415,12 +447,13 @@ class _OverviewTab extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               GestureDetector(
-                onTap: () => SharePlus.instance.share(
-                  ShareParams(
-                    text: _curlForShare(curlCommand),
-                    subject: 'cURL: ${log.shortLabel}',
-                  ),
-                ),
+                onTap:
+                    () => SharePlus.instance.share(
+                      ShareParams(
+                        text: _curlForShare(curlCommand),
+                        subject: 'cURL: ${log.shortLabel}',
+                      ),
+                    ),
                 child: const Icon(
                   Icons.share_outlined,
                   size: 16,
@@ -536,36 +569,38 @@ class _OverviewTab extends StatelessWidget {
   }
 
   Future<void> _deleteMock(BuildContext context, FMockRule rule) async {
-    final bool confirmed = await showDialog<bool>(
+    final bool confirmed =
+        await showDialog<bool>(
           context: context,
-          builder: (BuildContext ctx) => AlertDialog(
-            backgroundColor: _surface,
-            title: const Text(
-              'Delete mock rule?',
-              style: TextStyle(color: _textPrimary, fontSize: 15),
-            ),
-            content: Text(
-              rule.label,
-              style: const TextStyle(
-                color: _textMuted,
-                fontSize: 13,
-                fontFamily: 'monospace',
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: _textMuted),
+          builder:
+              (BuildContext ctx) => AlertDialog(
+                backgroundColor: _surface,
+                title: const Text(
+                  'Delete mock rule?',
+                  style: TextStyle(color: _textPrimary, fontSize: 15),
                 ),
+                content: Text(
+                  rule.label,
+                  style: const TextStyle(
+                    color: _textMuted,
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: _textMuted),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text('Delete', style: TextStyle(color: _red)),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Delete', style: TextStyle(color: _red)),
-              ),
-            ],
-          ),
         ) ??
         false;
     if (!confirmed) return;
@@ -721,40 +756,20 @@ class _BodyTab extends StatelessWidget {
         if (headers != null && headers!.isNotEmpty) ...<Widget>[
           _Section(
             title: 'HEADERS',
-            children: headers!.entries
-                .map(
-                  (MapEntry<String, dynamic> e) =>
-                      _InfoRow(label: e.key, value: e.value.toString()),
-                )
-                .toList(),
+            children:
+                headers!.entries
+                    .map(
+                      (MapEntry<String, dynamic> e) =>
+                          _InfoRow(label: e.key, value: e.value.toString()),
+                    )
+                    .toList(),
           ),
           const SizedBox(height: 12),
         ],
         if (body != null && body!.isNotEmpty)
           _Section(
             title: 'BODY',
-            trailing: IconButton(
-              icon: const Icon(
-                Icons.copy_outlined,
-                size: 16,
-                color: _textMuted,
-              ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: body!));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Copied'),
-                    duration: Duration(seconds: 1),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-            ),
-            children: <Widget>[
-              JsonBodyView(source: body!),
-            ],
+            children: <Widget>[JsonBodyView(source: body!)],
           )
         else
           Center(
@@ -813,4 +828,61 @@ class _InfoRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Resolves a log by id and rebuilds only when *that* log changes (or the mock
+/// rules do) — not on every store notification, which under a burst of
+/// requests would otherwise rebuild the whole detail page (cURL, report, JSON
+/// tree) constantly. If the log is evicted from the store's history while the
+/// page is open, the last known copy stays on screen instead of going blank.
+class _DetailHost extends StatefulWidget {
+  const _DetailHost({required this.requestId, required this.builder});
+
+  final String requestId;
+  final Widget Function(BuildContext context, NetworkLog? log, bool evicted)
+  builder;
+
+  @override
+  State<_DetailHost> createState() => _DetailHostState();
+}
+
+class _DetailHostState extends State<_DetailHost> {
+  NetworkLog? _log;
+  bool _evicted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _log = FNetworkStore.instance.getLog(widget.requestId);
+    FNetworkStore.instance.addListener(_onStore);
+    FMockStore.instance.addListener(_onMocks);
+  }
+
+  @override
+  void dispose() {
+    FNetworkStore.instance.removeListener(_onStore);
+    FMockStore.instance.removeListener(_onMocks);
+    super.dispose();
+  }
+
+  void _onStore() {
+    final NetworkLog? current = FNetworkStore.instance.getLog(widget.requestId);
+    if (current != null) {
+      if (!identical(current, _log) || _evicted) {
+        setState(() {
+          _log = current;
+          _evicted = false;
+        });
+      }
+    } else if (_log != null && !_evicted) {
+      setState(() => _evicted = true);
+    }
+  }
+
+  void _onMocks() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _log, _evicted);
 }

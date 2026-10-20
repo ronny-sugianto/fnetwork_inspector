@@ -10,39 +10,89 @@ class FNetworkStore with ChangeNotifier {
 
   static final FNetworkStore instance = FNetworkStore._();
 
-  static const int _maxLogs = 200;
+  int _maxLogs = 200;
+
+  /// Maximum number of logs kept in memory; the oldest are evicted first.
+  int get maxLogs => _maxLogs;
+  set maxLogs(int value) {
+    _maxLogs = value < 1 ? 1 : value;
+    _trim();
+    _changed();
+  }
 
   final LinkedHashMap<String, NetworkLog> _logs =
       LinkedHashMap<String, NetworkLog>();
+
+  // Snapshot cache, invalidated on every change — the UI reads `logs` and the
+  // counts several times per build.
+  List<NetworkLog>? _snapshot;
+  int _loading = 0;
+  int _success = 0;
+  int _error = 0;
 
   String _latestEndpoint = '';
 
   FNetworkErrorCallback? onApiError;
 
+  /// Newest first.
   UnmodifiableListView<NetworkLog> get logs =>
-      UnmodifiableListView<NetworkLog>(_logs.values.toList().reversed.toList());
+      UnmodifiableListView<NetworkLog>(_ensureSnapshot());
 
-  int get loadingCount => _logs.values
-      .where((NetworkLog l) => l.status == NetworkLogStatus.loading)
-      .length;
+  int get loadingCount {
+    _ensureSnapshot();
+    return _loading;
+  }
 
-  int get successCount => _logs.values
-      .where((NetworkLog l) => l.status == NetworkLogStatus.success)
-      .length;
+  int get successCount {
+    _ensureSnapshot();
+    return _success;
+  }
 
-  int get errorCount => _logs.values
-      .where((NetworkLog l) => l.status == NetworkLogStatus.error)
-      .length;
+  int get errorCount {
+    _ensureSnapshot();
+    return _error;
+  }
+
+  List<NetworkLog> _ensureSnapshot() {
+    final List<NetworkLog>? cached = _snapshot;
+    if (cached != null) return cached;
+    int loading = 0;
+    int success = 0;
+    int error = 0;
+    for (final NetworkLog l in _logs.values) {
+      switch (l.status) {
+        case NetworkLogStatus.loading:
+          loading++;
+        case NetworkLogStatus.success:
+          success++;
+        case NetworkLogStatus.error:
+          error++;
+      }
+    }
+    _loading = loading;
+    _success = success;
+    _error = error;
+    return _snapshot = _logs.values.toList().reversed.toList();
+  }
+
+  void _trim() {
+    while (_logs.length > _maxLogs) {
+      _logs.remove(_logs.keys.first);
+    }
+  }
+
+  void _changed() {
+    _snapshot = null;
+    notifyListeners();
+  }
 
   String get latestEndpoint => _latestEndpoint;
 
   void onRequest(NetworkLog log) {
-    if (_logs.length >= _maxLogs) {
-      _logs.remove(_logs.keys.first);
-    }
     _logs[log.id] = log;
+    _trim();
     _latestEndpoint = log.shortLabel;
-    notifyListeners();
+    _changed();
   }
 
   void onSuccess(
@@ -62,7 +112,7 @@ class FNetworkStore with ChangeNotifier {
       responseBody: responseBody,
     );
     _latestEndpoint = _logs[id]!.shortLabel;
-    notifyListeners();
+    _changed();
   }
 
   void onError(
@@ -83,7 +133,7 @@ class FNetworkStore with ChangeNotifier {
     );
     _latestEndpoint = _logs[id]!.shortLabel;
     onApiError?.call(_logs[id]!);
-    notifyListeners();
+    _changed();
   }
 
   NetworkLog? getLog(String id) => _logs[id];
@@ -91,6 +141,6 @@ class FNetworkStore with ChangeNotifier {
   void clear() {
     _logs.clear();
     _latestEndpoint = '';
-    notifyListeners();
+    _changed();
   }
 }

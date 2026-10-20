@@ -68,6 +68,10 @@ class FNetworkInspector {
   ///   or network error). Receives the completed [NetworkLog] with full context —
   ///   useful for forwarding errors to Sentry, Crashlytics, etc.
   ///
+  /// - [maxLogs]: how many requests to keep in memory (default 200). When the
+  ///   limit is hit the oldest are evicted. Raise it if you fire thousands of
+  ///   calls and need to browse further back; each log holds its bodies, so
+  ///   very large values cost memory.
   /// - [mockRules]: optional list of [FMockRule]s to seed the mock registry
   ///   with. Ignored when [enableInspection] is false, or when [mockPersistence]
   ///   restored a non-empty set. More can be added at runtime via [mocks] or the
@@ -83,6 +87,7 @@ class FNetworkInspector {
     bool enableInspection = true,
     bool enableNotifications = false,
     FNetworkErrorCallback? onApiError,
+    int maxLogs = 200,
     List<FMockRule>? mockRules,
     List<FMockScenario>? mockScenarios,
     FMockPersistence? mockPersistence,
@@ -96,6 +101,7 @@ class FNetworkInspector {
     }
 
     FNetworkStore.instance.onApiError = onApiError;
+    FNetworkStore.instance.maxLogs = maxLogs;
 
     if (enableInspection) {
       if (mockPersistence != null) {
