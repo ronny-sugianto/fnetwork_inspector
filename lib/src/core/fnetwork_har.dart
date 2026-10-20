@@ -9,7 +9,7 @@ import 'package:fnetwork_inspector/src/model/network_log.dart';
 class FNetworkHar {
   FNetworkHar._();
 
-  static const String _version = '0.4.0';
+  static const String _version = '0.5.0';
 
   /// Serialises [logs] to a pretty-printed HAR JSON string.
   ///

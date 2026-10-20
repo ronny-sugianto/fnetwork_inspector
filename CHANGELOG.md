@@ -1,4 +1,4 @@
-## 0.4.0
+## 0.5.0
 
 **Tester guide**
 
@@ -6,6 +6,18 @@
 - Steps that must stand out can be marked with `FTesterGuideStep.warning(...)` and render highlighted in red. The default guide uses it for the sensitive-data step, because the inspector (and its cURL / HAR exports) shows real tokens, cookies and personal data.
 - Built-in **English and Indonesian** text, chosen automatically from the app's locale (`id` → Indonesian, otherwise English; `id` must be in `supportedLocales`). Every `FTesterGuide` field (title, intro, note, steps, button/checkbox labels) is an optional override, so the host app can replace any piece or add other languages; fields left out keep following the locale. `FTesterGuide.resolve(locale)` returns the final text; `FTesterGuide.defaultSteps` / `defaultStepsId` are the built-in steps. Bump `FTesterGuide.version` when you change the content and testers who chose "don't show again" will see it once more.
 - The inspector's ⋮ menu gets **Tester guide** (reopen it any time) and a **Show guide at startup** switch. The choice survives restarts if you pass an `FInspectorStorage` delegate (`inspectorStorage:`); without one it simply shows once per launch. Never active when `enableInspection` is false.
+
+**JSON body viewer**
+
+- Fixed: the tree never rendered the closing `}` / `]` rows, so it always ended at the last value and looked cut off compared with Raw. Closing rows are now shown for open containers, and empty objects/arrays render inline as `{}` / `[]`.
+- Small/medium bodies render inline and scroll with the page. Only genuinely large ones (40+ tree rows, or 4000+ raw characters) get their own height-capped area with an always-visible scrollbar, so it never competes with the page scroll.
+**Fixes and improvements**
+
+- Fixed: with a burst of requests, a detail page you had open could suddenly turn blank / "Request not found" — the log was evicted from the 200-entry history. The page now keeps showing the last captured data with an "Evicted from history" notice. The history size is configurable via `FNetworkInspector.initialize(maxLogs: ...)` (default 200).
+- Improved performance under heavy traffic: the detail page rebuilds only when its own log changes (not on every request in the app), and the store caches its log snapshot and status counts instead of recomputing them several times per build.
+- Fixed: the Body card header showed a second copy icon on top of the viewer's own — removed. Non-JSON bodies get a copy button inside the viewer instead.
+
+## 0.4.0
 
 **Response mocking**
 
@@ -40,15 +52,11 @@
   - **Expand all / Collapse all**.
   - Tap a value to copy it; long-press any node for **Copy value / Copy path (`$.a.b[0]`) / Copy subtree**.
   - Non-JSON bodies fall back to plain selectable text; very large trees cap at 2000 rows with a hint to use Raw.
-  - The tree shows closing `}` / `]` rows like the raw JSON (previously it ended at the last leaf and looked cut off); empty objects/arrays render inline as `{}` / `[]`.
-  - Small/medium bodies render inline and scroll with the page. Only genuinely large ones (40+ tree rows, or 4000+ raw characters) get their own height-capped area with an always-visible scrollbar, so it never competes with the page scroll.
+  - The tree/raw area is capped in height and scrolls internally, so large payloads are always fully reachable instead of overflowing the card.
 
 **Other**
 
 - Small tappable **credit line** (`rons.my.id`) in a footer strip on every inspector screen. It's also attached to content *only when it leaves the app* — copied/shared cURL and full report, exported HAR (`creator.comment`) and mock/scenario JSON (`_credit`) — never shown in the on-screen previews.
-- Fixed: with a burst of requests, a detail page you had open could suddenly turn blank / "Request not found" — the log was evicted from the 200-entry history. The page now keeps showing the last captured data with an "Evicted from history" notice. The history size is configurable via `FNetworkInspector.initialize(maxLogs: ...)` (default 200).
-- Improved performance under heavy traffic: the detail page rebuilds only when its own log changes (not on every request in the app), and the store caches its log snapshot and status counts instead of recomputing them several times per build.
-- Fixed: the Body card header showed a second copy icon on top of the viewer's own — removed. Non-JSON bodies get a copy button inside the viewer instead.
 - Fixed: `NetworkLogListScreen` and `NetworkLogDetailScreen` didn't refresh while open — an in-flight request stayed on "Requesting…" until the screen was closed and reopened. Both screens now listen to `FNetworkStore` and update live as requests complete.
 
 ## 0.3.1
