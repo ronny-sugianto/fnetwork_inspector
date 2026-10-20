@@ -21,10 +21,10 @@ class FTesterGuide {
     this.version = 1,
     this.title = "You're in a testing environment",
     this.intro =
-        'Thanks for testing! Please follow these instructions before '
-            'submitting a bug report: follow the intended flow, reproduce the '
-            'issue, verify the expected behavior, and validate the relevant API '
-            'response. Attach sufficient evidence to help the developer '
+        'Thanks for helping us test! These quick steps help developers find '
+            'and fix issues faster: follow the intended flow, reproduce the '
+            'issue, verify the expected behavior, and check the relevant API '
+            'response. The more evidence you attach, the faster we can '
             'investigate.',
     this.note =
         'Reports that lack clear reproduction steps or sufficient evidence '

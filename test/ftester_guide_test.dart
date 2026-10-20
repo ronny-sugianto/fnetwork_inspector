@@ -153,10 +153,7 @@ void main() {
       await tester.pumpWidget(_app());
       await tester.pump();
 
-      expect(
-        find.textContaining('Please follow these instructions'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Thanks for helping us test'), findsOneWidget);
       expect(
         find.textContaining('may be returned for further investigation'),
         findsOneWidget,

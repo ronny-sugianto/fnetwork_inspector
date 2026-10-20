@@ -197,7 +197,7 @@ Mock rules always take precedence over chaos. Affected entries carry a `CHAOS` b
 
 ### 7. (Optional) Tester guide
 
-Show QA / product testers a short bug-reporting checklist ("You're in a testing environment — please follow these instructions") when the app opens — so tickets arrive with a screen recording, a reproduction, the API log and the evidence, instead of just "there is a bug". It appears once per app start while the inspector is enabled (never in builds where `enableInspection` is `false`) and needs `FNetworkInspectorOverlay` from step 4.
+Show QA / product testers a short bug-reporting checklist ("You're in a testing environment") when the app opens — so tickets arrive with a screen recording, a reproduction, the API log and the evidence, instead of just "there is a bug". It appears once per app start while the inspector is enabled (never in builds where `enableInspection` is `false`) and needs `FNetworkInspectorOverlay` from step 4.
 
 ```dart
 await FNetworkInspector.initialize(
@@ -207,7 +207,7 @@ await FNetworkInspector.initialize(
 );
 ```
 
-The default dialog opens with a friendly heading ("You're in a testing environment") and a short intro asking testers to follow the instructions before submitting a bug report (follow the intended flow, reproduce, verify the expected behavior, validate the API response), plus a note that reports without clear steps or evidence may be returned. Then nine steps:
+The default dialog opens with a friendly heading ("You're in a testing environment") and a friendly intro explaining that these quick steps help developers fix issues faster (follow the intended flow, reproduce, verify the expected behavior, check the API response), plus a note that reports without clear steps or evidence may be returned. Then nine steps:
 
 1. **Follow the intended flow** — and confirm the prerequisites (permissions, data, initial status, previous actions)
 2. **Record your screen**
