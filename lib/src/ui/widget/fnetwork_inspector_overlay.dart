@@ -225,12 +225,9 @@ class _FNetworkInspectorOverlayState extends State<FNetworkInspectorOverlay>
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: TesterGuideCard(
-                                guides:
-                                    FTesterGuideStore.instance.guides.isEmpty
-                                        ? const <FTesterGuide>[FTesterGuide()]
-                                        : FTesterGuideStore.instance.guides,
-                                initialIndex:
-                                    FTesterGuideStore.instance.selectedIndex,
+                                guide:
+                                    FTesterGuideStore.instance.guide ??
+                                    const FTesterGuide(),
                                 onClose:
                                     () => setState(() => _guideOpen = false),
                                 onOpenInspector: _openPanel,

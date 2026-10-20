@@ -221,17 +221,6 @@ The default dialog opens with a friendly heading ("You're in a testing environme
 
 Testers are asked to collect evidence and document findings, not to determine the root cause.
 
-**Different audiences, one build.** QA / product testers and pentesters usually share a build, but need different instructions (a pentester is *supposed* to leave the happy path). Pass several guides and the dialog shows a switcher, remembering the last choice (with an `FInspectorStorage`):
-
-```dart
-await FNetworkInspector.initialize(
-  enableInspection: !isProdRelease,
-  testerGuides: [FTesterGuide.qa, FTesterGuide.pentest],
-);
-```
-
-`FTesterGuide.pentest` covers scope and authorization, test accounts and data, evidence handling, impact and responsible reporting. Give a guide a `label` to name its switcher chip; a single guide shows no switcher.
-
 Everything is a plain parameter, so localising it is up to your app — build an `FTesterGuide` from your own translations:
 
 ```dart
@@ -286,7 +275,6 @@ Tapping a request notification will push the list screen and then the detail scr
 | `onApiError` | `void Function(NetworkLog)?` | `null` | Callback invoked on every failed request (4xx, 5xx, or network error). Receives the completed `NetworkLog` — use it to forward errors to Sentry, Crashlytics, etc. |
 | `maxLogs` | `int` | `200` | How many requests are kept in memory; the oldest are evicted first. Raise it if you fire thousands of calls and need to browse further back (each log holds its bodies, so very large values cost memory). |
 | `testerGuide` | `FTesterGuide?` | `null` | "You're in a testing environment" instructions dialog for testers, shown once per app start (needs `FNetworkInspectorOverlay`). All text is customisable/localisable. Ignored when `enableInspection` is `false`. |
-| `testerGuides` | `List<FTesterGuide>?` | `null` | Several guides for different audiences sharing one build (e.g. `[FTesterGuide.qa, FTesterGuide.pentest]`). The dialog shows a switcher and remembers the last choice. Combined with `testerGuide` if both are given. |
 | `inspectorStorage` | `FInspectorStorage?` | `null` | Storage delegate so the guide's "don't show again" choice survives restarts. The package ships no implementation. |
 | `mockRules` | `List<FMockRule>?` | `null` | Seed the in-memory mock registry. Ignored when `enableInspection` is `false` or when `mockPersistence` restored a non-empty set. Add/remove more later via `FNetworkInspector.mocks`. |
 | `mockScenarios` | `List<FMockScenario>?` | `null` | Seed named scenarios. Same rules as `mockRules`. |

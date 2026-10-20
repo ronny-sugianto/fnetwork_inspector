@@ -16,16 +16,12 @@ const Color _red = Color(0xFFF85149);
 class TesterGuideCard extends StatefulWidget {
   const TesterGuideCard({
     super.key,
-    required this.guides,
+    required this.guide,
     required this.onClose,
-    this.initialIndex = 0,
     this.onOpenInspector,
   });
 
-  /// One guide per audience. With more than one, a switcher is shown and the
-  /// choice is remembered via [FTesterGuideStore.select].
-  final List<FTesterGuide> guides;
-  final int initialIndex;
+  final FTesterGuide guide;
 
   /// Called after the tester dismisses the guide.
   final VoidCallback onClose;
@@ -40,12 +36,6 @@ class TesterGuideCard extends StatefulWidget {
 
 class _TesterGuideCardState extends State<TesterGuideCard> {
   bool _dontShowAgain = false;
-  late int _index = widget.initialIndex.clamp(0, widget.guides.length - 1);
-
-  void _select(int i) {
-    setState(() => _index = i);
-    FTesterGuideStore.instance.select(i);
-  }
 
   void _finish({bool openInspector = false}) {
     if (_dontShowAgain) FTesterGuideStore.instance.setShowAtStartup(false);
@@ -55,7 +45,7 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
 
   @override
   Widget build(BuildContext context) {
-    final FTesterGuide g = widget.guides[_index];
+    final FTesterGuide g = widget.guide;
     return Container(
       decoration: BoxDecoration(
         color: _surface,
@@ -86,17 +76,6 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
               ),
             ],
           ),
-          if (widget.guides.length > 1) ...<Widget>[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: <Widget>[
-                for (int i = 0; i < widget.guides.length; i++)
-                  _audienceChip(i, widget.guides[i]),
-              ],
-            ),
-          ],
           const SizedBox(height: 10),
           // Intro, note and steps share one scroll area so small screens keep
           // as much room as possible for the steps; title and buttons stay put.
@@ -208,32 +187,6 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
     );
   }
 
-  Widget _audienceChip(int i, FTesterGuide guide) {
-    final bool active = i == _index;
-    return GestureDetector(
-      onTap: () => _select(i),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: active ? _blue.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: active ? _blue : _border,
-            width: active ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          guide.label ?? 'Guide ${i + 1}',
-          style: TextStyle(
-            color: active ? _blue : _textMuted,
-            fontSize: 12,
-            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _step(int n, FTesterGuideStep step) {
     final Color accent = step.emphasize ? _red : _blue;
     final Widget content = Row(
@@ -308,7 +261,7 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
   }
 }
 
-/// Shows the tester guide in a regular dialog. Uses the guide(s) configured via
+/// Shows the tester guide in a regular dialog. Uses the guide configured via
 /// `FNetworkInspector.initialize(testerGuide: ...)` unless [guide] is given,
 /// falling back to the English defaults.
 Future<void> showTesterGuideDialog(
@@ -330,19 +283,14 @@ Future<void> showTesterGuideDialog(
               maxHeight: MediaQuery.sizeOf(ctx).height * 0.85,
             ),
             child: TesterGuideCard(
-              guides: guide != null ? <FTesterGuide>[guide] : _storeGuides(),
-              initialIndex:
-                  guide != null ? 0 : FTesterGuideStore.instance.selectedIndex,
+              guide:
+                  guide ??
+                  FTesterGuideStore.instance.guide ??
+                  const FTesterGuide(),
               onClose: () => Navigator.of(ctx).pop(),
               onOpenInspector: onOpenInspector,
             ),
           ),
         ),
   );
-}
-
-/// Guides to show: the configured ones, or the English defaults.
-List<FTesterGuide> _storeGuides() {
-  final List<FTesterGuide> guides = FTesterGuideStore.instance.guides;
-  return guides.isEmpty ? const <FTesterGuide>[FTesterGuide()] : guides;
 }

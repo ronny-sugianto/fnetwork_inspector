@@ -14,8 +14,8 @@ class FTesterGuideStep {
   final bool emphasize;
 }
 
-/// Content of the instructions dialog shown to testers (QA / product /
-/// pentesters) when the inspector is enabled.
+/// Content of the instructions dialog shown to testers (QA / product) when
+/// the inspector is enabled.
 ///
 /// Every string can be replaced, so localising it is up to the host app:
 /// build an [FTesterGuide] from your own translations and pass it to
@@ -24,7 +24,6 @@ class FTesterGuideStep {
 class FTesterGuide {
   const FTesterGuide({
     this.version = 1,
-    this.label,
     this.title = "You're in a testing environment",
     this.intro =
         'Thanks for helping us test! These quick steps help developers find '
@@ -45,10 +44,6 @@ class FTesterGuide {
   /// again" for an older version will see the dialog once more.
   final int version;
 
-  /// Short name of the audience this guide is for (e.g. "QA", "Pentest"). When
-  /// several guides are configured the dialog shows a switcher using these.
-  final String? label;
-
   final String title;
   final String intro;
 
@@ -59,67 +54,6 @@ class FTesterGuide {
   final String dontShowAgainLabel;
   final String confirmLabel;
   final String openInspectorLabel;
-
-  /// Functional testing guide (QA / product), labelled for the audience
-  /// switcher. Same content as `FTesterGuide()`.
-  static const FTesterGuide qa = FTesterGuide(label: 'QA / Product');
-
-  /// Security-testing guide for pentesters: scope, test data, evidence and
-  /// responsible reporting — instead of "follow the intended flow".
-  static const FTesterGuide pentest = FTesterGuide(
-    label: 'Pentest',
-    title: "You're in a testing environment",
-    intro:
-        'Thanks for testing the security of this app! These quick steps keep '
-        'the test safe and make each finding easy to verify and fix.',
-    note:
-        'Stay within the agreed scope, and report findings only through the '
-        'agreed channel.',
-    steps: pentestSteps,
-  );
-
-  static const List<FTesterGuideStep> pentestSteps = <FTesterGuideStep>[
-    FTesterGuideStep(
-      'Confirm scope and authorization',
-      "Test only the environment, accounts and features you've been "
-          'authorized to test. If something is out of scope or you are '
-          'unsure, ask before continuing.',
-    ),
-    FTesterGuideStep(
-      'Use test accounts and data',
-      "Prefer dedicated test accounts and data. Don't access, change or keep "
-          "real users' data, and avoid destructive actions (deleting records, "
-          'bulk requests) unless explicitly agreed.',
-    ),
-    FTesterGuideStep(
-      'Record what you do',
-      'Keep track of the steps, inputs and requests you send (screen '
-          'recording, Network Inspector log) so every finding can be '
-          'reproduced.',
-    ),
-    FTesterGuideStep(
-      'Reproduce each finding',
-      'Confirm the issue at least once more. Note how reliably it occurs and '
-          'under which conditions: role, state and environment.',
-    ),
-    FTesterGuideStep.warning(
-      'Handle evidence with care',
-      'Request and response logs (report, cURL, HAR) can contain real tokens '
-          'and personal data. Share them only through the agreed secure '
-          'channel and mask anything that is not needed to show the issue.',
-    ),
-    FTesterGuideStep(
-      'Describe the impact',
-      'Explain what you observed versus what is expected, what an attacker '
-          'could do and under which conditions. Report what you verified; '
-          "don't overstate.",
-    ),
-    FTesterGuideStep(
-      'Report responsibly',
-      "Don't exploit an issue beyond what is needed to demonstrate it, and "
-          "don't share it anywhere except the agreed channel.",
-    ),
-  ];
 
   static const List<FTesterGuideStep> defaultSteps = <FTesterGuideStep>[
     FTesterGuideStep(
