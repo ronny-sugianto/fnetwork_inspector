@@ -45,7 +45,10 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
 
   @override
   Widget build(BuildContext context) {
-    final FTesterGuide g = widget.guide;
+    final FTesterGuideText g = widget.guide.resolve(
+      Localizations.maybeLocaleOf(context) ??
+          WidgetsBinding.instance.platformDispatcher.locale,
+    );
     return Container(
       decoration: BoxDecoration(
         color: _surface,

@@ -202,7 +202,7 @@ Show QA / product testers a short bug-reporting checklist ("You're in a testing 
 ```dart
 await FNetworkInspector.initialize(
   enableInspection: kDebugMode,
-  testerGuide: const FTesterGuide(),          // English defaults
+  testerGuide: const FTesterGuide(),          // built-in English + Indonesian text
   inspectorStorage: PrefsInspectorStorage(),  // optional: remember "don't show again"
 );
 ```
@@ -221,12 +221,14 @@ The default dialog opens with a friendly heading ("You're in a testing environme
 
 Testers are asked to collect evidence and document findings, not to determine the root cause.
 
-Everything is a plain parameter, so localising it is up to your app — build an `FTesterGuide` from your own translations:
+**Languages.** The built-in text comes in **English and Indonesian**, picked automatically from your app's locale (`id` → Indonesian, anything else → English). Make sure `id` is in your `MaterialApp.supportedLocales`; Flutter resolves an unsupported locale to your first supported one, and the dialog follows that.
+
+Every field of `FTesterGuide` is an optional override, so you can replace any piece (or add another language) from your own translations — fields you leave out keep following the locale:
 
 ```dart
 FTesterGuide(
   version: 2,                       // bump when the content changes → shown once more
-  title: l10n.guideTitle,
+  title: l10n.guideTitle,           // all of these are optional
   intro: l10n.guideIntro,
   note: l10n.guideNote,             // highlighted remark under the intro ('' hides it)
   steps: <FTesterGuideStep>[

@@ -15,10 +15,19 @@ class _MemStorage implements FInspectorStorage {
   Future<void> write(String key, String value) async => data[key] = value;
 }
 
-Widget _app({Widget? home}) => MaterialApp(
-  builder:
-      (BuildContext context, Widget? child) =>
-          FNetworkInspectorOverlay(enabled: true, child: child!),
+Widget _app({Widget? home, Locale? locale}) => MaterialApp(
+  builder: (BuildContext context, Widget? child) {
+    Widget overlay = FNetworkInspectorOverlay(enabled: true, child: child!);
+    // The dialog follows the app's resolved locale; force one for the test.
+    if (locale != null) {
+      overlay = Localizations.override(
+        context: context,
+        locale: locale,
+        child: overlay,
+      );
+    }
+    return overlay;
+  },
   home: home ?? const Scaffold(body: Text('home')),
 );
 
@@ -193,6 +202,90 @@ void main() {
       expect(find.text('Jangan tampilkan lagi'), findsOneWidget);
       expect(find.text('Buka inspector'), findsOneWidget);
       expect(find.text('Got it'), findsNothing);
+    });
+  });
+
+  group('built-in languages (en / id)', () {
+    testWidgets('Indonesian app locale shows the Indonesian guide', (
+      WidgetTester tester,
+    ) async {
+      await FTesterGuideStore.instance.configure(const FTesterGuide(), null);
+      await tester.pumpWidget(_app(locale: const Locale('id')));
+      await tester.pump();
+
+      expect(
+        find.text('Anda sedang berada di lingkungan testing'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Terima kasih sudah membantu testing'),
+        findsOneWidget,
+      );
+      expect(find.text('Ikuti alur yang seharusnya'), findsOneWidget);
+      expect(find.text('Mengerti'), findsOneWidget);
+      expect(find.text('Jangan tampilkan lagi'), findsOneWidget);
+      expect(find.text("You're in a testing environment"), findsNothing);
+      expect(find.text('Got it'), findsNothing);
+    });
+
+    for (final Locale locale in const <Locale>[Locale('en'), Locale('fr')]) {
+      testWidgets('${locale.languageCode} falls back to English', (
+        WidgetTester tester,
+      ) async {
+        await FTesterGuideStore.instance.configure(const FTesterGuide(), null);
+        await tester.pumpWidget(_app(locale: locale));
+        await tester.pump();
+        expect(find.text("You're in a testing environment"), findsOneWidget);
+        expect(find.text('Got it'), findsOneWidget);
+      });
+    }
+
+    testWidgets('your own text wins over the built-in one, per field', (
+      WidgetTester tester,
+    ) async {
+      await FTesterGuideStore.instance.configure(
+        const FTesterGuide(title: 'Custom title', note: ''),
+        null,
+      );
+      await tester.pumpWidget(_app(locale: const Locale('id')));
+      await tester.pump();
+
+      expect(find.text('Custom title'), findsOneWidget);
+      // Fields you did not override still follow the locale.
+      expect(find.text('Ikuti alur yang seharusnya'), findsOneWidget);
+      expect(find.textContaining('dapat dikembalikan'), findsNothing);
+    });
+
+    test('resolve() picks the language and applies overrides', () {
+      expect(
+        const FTesterGuide().resolve(const Locale('id')).confirmLabel,
+        'Mengerti',
+      );
+      expect(
+        const FTesterGuide().resolve(const Locale('id', 'ID')).confirmLabel,
+        'Mengerti',
+        reason: 'country code must not matter',
+      );
+      expect(
+        const FTesterGuide().resolve(const Locale('en', 'US')).confirmLabel,
+        'Got it',
+      );
+      expect(
+        const FTesterGuide(
+          confirmLabel: 'OK',
+        ).resolve(const Locale('id')).confirmLabel,
+        'OK',
+      );
+    });
+
+    test('Indonesian and English guides have the same shape', () {
+      final List<FTesterGuideStep> en = FTesterGuide.defaultSteps;
+      final List<FTesterGuideStep> id = FTesterGuide.defaultStepsId;
+      expect(id.length, en.length);
+      for (int i = 0; i < en.length; i++) {
+        expect(id[i].emphasize, en[i].emphasize, reason: 'step ${i + 1}');
+        expect(id[i].description, isNotNull);
+      }
     });
   });
 
