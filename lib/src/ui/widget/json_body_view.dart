@@ -154,6 +154,7 @@ class _JsonBodyViewState extends State<JsonBodyView> {
           container && (keep != null || !_collapsed.contains(path));
       out.add(_Row(path, key, value, depth, container, expanded));
       if (!container || !expanded) return;
+      final bool isMap = value is Map;
       if (value is Map) {
         value.forEach(
           (dynamic k, dynamic v) => add(v, '$path.$k', k.toString(), depth + 1),
@@ -162,6 +163,12 @@ class _JsonBodyViewState extends State<JsonBodyView> {
         for (int i = 0; i < value.length; i++) {
           add(value[i], '$path[$i]', '[$i]', depth + 1);
         }
+      }
+      // Closing bracket row, so the tree reads like the raw JSON. Empty
+      // containers close inline (`{}` / `[]`) instead.
+      final bool empty = isMap ? value.isEmpty : (value as List<dynamic>).isEmpty;
+      if (!empty) {
+        out.add(_Row.closing(path, depth, isMap ? '}' : ']'));
       }
     }
 
@@ -488,6 +495,22 @@ class _JsonBodyViewState extends State<JsonBodyView> {
     final double indent = row.depth * 14 + (row.isContainer ? 0 : 16);
     final List<InlineSpan> spans = <InlineSpan>[];
 
+    if (row.closeChar != null) {
+      return Padding(
+        // Aligned with the opener's text (past the caret column).
+        padding: EdgeInsets.only(left: row.depth * 14 + 16, top: 1, bottom: 1),
+        child: Text(
+          row.closeChar!,
+          style: const TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 11,
+            height: 1.7,
+            color: _punct,
+          ),
+        ),
+      );
+    }
+
     if (row.key != null) {
       spans.addAll(_highlight(row.key!, _keyColor));
       spans.add(const TextSpan(text: ': ', style: TextStyle(color: _punct)));
@@ -497,7 +520,12 @@ class _JsonBodyViewState extends State<JsonBodyView> {
       final int n = isMap
           ? (row.value as Map<dynamic, dynamic>).length
           : (row.value as List<dynamic>).length;
-      if (row.expanded) {
+      if (n == 0) {
+        spans.add(TextSpan(
+          text: isMap ? '{}' : '[]',
+          style: const TextStyle(color: _punct),
+        ));
+      } else if (row.expanded) {
         spans.add(TextSpan(
           text: isMap ? '{' : '[',
           style: const TextStyle(color: _punct),
@@ -615,7 +643,16 @@ class _Row {
     this.depth,
     this.isContainer,
     this.expanded,
-  );
+  ) : closeChar = null;
+
+  /// A non-interactive row holding just the closing `}` / `]` of [path].
+  const _Row.closing(this.path, this.depth, this.closeChar)
+      : key = null,
+        value = null,
+        isContainer = false,
+        expanded = false;
+
+  final String? closeChar;
 
   final String path;
   final String? key;

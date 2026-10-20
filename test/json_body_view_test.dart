@@ -79,6 +79,40 @@ void main() {
     },
   );
 
+  testWidgets(
+    'tree renders closing brackets (regression: looked cut off vs Raw)',
+    (WidgetTester tester) async {
+      await _pump(
+        tester,
+        '{"status":200,"message":"Retrieve Campaign","data":['
+        '{"image_path":"img/a (1).png"},{"image_path":"img/b (2).png"}]}',
+      );
+      // Two item objects + the root object each close with `}`; the array with `]`.
+      expect(find.text('}'), findsNWidgets(3));
+      expect(find.text(']'), findsOneWidget);
+    },
+  );
+
+  testWidgets('empty object/array render inline as {} and []', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, '{"a":{},"b":[]}');
+    expect(find.textContaining('a: {}'), findsOneWidget);
+    expect(find.textContaining('b: []'), findsOneWidget);
+  });
+
+  testWidgets('collapsed nodes drop their closing bracket', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, '{"outer":{"inner":"v"}}');
+    expect(find.text('}'), findsNWidgets(2));
+
+    await tester.tap(find.byTooltip('Collapse all'));
+    await tester.pump();
+    // Only the root stays open (and closes); `outer` is now `{ … }`.
+    expect(find.text('}'), findsOneWidget);
+  });
+
   testWidgets('search filters rows to matches and their ancestors', (
     WidgetTester tester,
   ) async {

@@ -33,7 +33,8 @@
   - **Expand all / Collapse all**.
   - Tap a value to copy it; long-press any node for **Copy value / Copy path (`$.a.b[0]`) / Copy subtree**.
   - Non-JSON bodies fall back to plain selectable text; very large trees cap at 2000 rows with a hint to use Raw.
-  - Small/medium bodies render inline and scroll with the page. Only genuinely large ones (40+ tree rows, or 4000+ raw characters) get their own height-capped area with an always-visible scrollbar, so nothing competes with the page scroll and nothing looks cut off.
+  - The tree shows closing `}` / `]` rows like the raw JSON (previously it ended at the last leaf and looked cut off); empty objects/arrays render inline as `{}` / `[]`.
+  - Small/medium bodies render inline and scroll with the page. Only genuinely large ones (40+ tree rows, or 4000+ raw characters) get their own height-capped area with an always-visible scrollbar, so it never competes with the page scroll.
 
 **Other**
 
