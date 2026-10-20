@@ -7,6 +7,7 @@ const Color _border = Color(0xFF30363D);
 const Color _textPrimary = Color(0xFFE6EDF3);
 const Color _textMuted = Color(0xFF8B949E);
 const Color _blue = Color(0xFF58A6FF);
+const Color _orange = Color(0xFFD29922);
 
 /// The "before you report a bug" card. Used inline by
 /// `FNetworkInspectorOverlay` (no Navigator needed) and wrapped in a dialog by
@@ -74,23 +75,50 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
               ),
             ],
           ),
-          if (g.intro.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(
-              g.intro,
-              style: const TextStyle(
-                color: _textMuted,
-                fontSize: 12,
-                height: 1.4,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          // Intro, note and steps share one scroll area so small screens keep
+          // as much room as possible for the steps; title and buttons stay put.
           Flexible(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
+                  if (g.intro.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        g.intro,
+                        style: const TextStyle(
+                          color: _textMuted,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  if (g.note.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _orange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: _orange.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        g.note,
+                        style: const TextStyle(
+                          color: _orange,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
                   for (int i = 0; i < g.steps.length; i++)
                     _step(i + 1, g.steps[i]),
                 ],
@@ -109,8 +137,9 @@ class _TesterGuideCardState extends State<TesterGuideCard> {
                     value: _dontShowAgain,
                     activeColor: _blue,
                     side: const BorderSide(color: _textMuted),
-                    onChanged: (bool? v) =>
-                        setState(() => _dontShowAgain = v ?? false),
+                    onChanged:
+                        (bool? v) =>
+                            setState(() => _dontShowAgain = v ?? false),
                   ),
                 ),
                 Expanded(
@@ -220,21 +249,25 @@ Future<void> showTesterGuideDialog(
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (BuildContext ctx) => Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 440,
-          maxHeight: MediaQuery.sizeOf(ctx).height * 0.85,
+    builder:
+        (BuildContext ctx) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 440,
+              maxHeight: MediaQuery.sizeOf(ctx).height * 0.85,
+            ),
+            child: TesterGuideCard(
+              guide:
+                  guide ??
+                  FTesterGuideStore.instance.guide ??
+                  const FTesterGuide(),
+              onClose: () => Navigator.of(ctx).pop(),
+              onOpenInspector: onOpenInspector,
+            ),
+          ),
         ),
-        child: TesterGuideCard(
-          guide: guide ?? FTesterGuideStore.instance.guide ?? const FTesterGuide(),
-          onClose: () => Navigator.of(ctx).pop(),
-          onOpenInspector: onOpenInspector,
-        ),
-      ),
-    ),
   );
 }

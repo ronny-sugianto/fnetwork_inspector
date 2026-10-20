@@ -16,10 +16,11 @@ class _MemStorage implements FInspectorStorage {
 }
 
 Widget _app({Widget? home}) => MaterialApp(
-      builder: (BuildContext context, Widget? child) =>
+  builder:
+      (BuildContext context, Widget? child) =>
           FNetworkInspectorOverlay(enabled: true, child: child!),
-      home: home ?? const Scaffold(body: Text('home')),
-    );
+  home: home ?? const Scaffold(body: Text('home')),
+);
 
 void main() {
   setUp(() => FTesterGuideStore.instance.reset());
@@ -38,29 +39,31 @@ void main() {
       expect(s.showAtStartup, isTrue, reason: 'still enabled for next launch');
     });
 
-    test('"don\'t show again" hides it, a version bump shows it once more',
-        () async {
-      final _MemStorage storage = _MemStorage();
-      final FTesterGuideStore s = FTesterGuideStore.instance;
-      await s.configure(const FTesterGuide(version: 1), storage);
+    test(
+      '"don\'t show again" hides it, a version bump shows it once more',
+      () async {
+        final _MemStorage storage = _MemStorage();
+        final FTesterGuideStore s = FTesterGuideStore.instance;
+        await s.configure(const FTesterGuide(version: 1), storage);
 
-      s.setShowAtStartup(false);
-      expect(s.showAtStartup, isFalse);
-      expect(
-        jsonDecode(storage.data[FTesterGuideStore.storageKey]!),
-        <String, dynamic>{'hiddenVersion': 1},
-      );
+        s.setShowAtStartup(false);
+        expect(s.showAtStartup, isFalse);
+        expect(
+          jsonDecode(storage.data[FTesterGuideStore.storageKey]!),
+          <String, dynamic>{'hiddenVersion': 1},
+        );
 
-      // Next launch, same version: stays hidden.
-      s.reset();
-      await s.configure(const FTesterGuide(version: 1), storage);
-      expect(s.showAtStartup, isFalse);
+        // Next launch, same version: stays hidden.
+        s.reset();
+        await s.configure(const FTesterGuide(version: 1), storage);
+        expect(s.showAtStartup, isFalse);
 
-      // Guide content changed: shows again.
-      s.reset();
-      await s.configure(const FTesterGuide(version: 2), storage);
-      expect(s.showAtStartup, isTrue);
-    });
+        // Guide content changed: shows again.
+        s.reset();
+        await s.configure(const FTesterGuide(version: 2), storage);
+        expect(s.showAtStartup, isTrue);
+      },
+    );
 
     test('switching it back on clears the stored choice', () async {
       final _MemStorage storage = _MemStorage();
@@ -76,8 +79,8 @@ void main() {
     });
 
     test('ignores corrupt stored state', () async {
-      final _MemStorage storage = _MemStorage()
-        ..data[FTesterGuideStore.storageKey] = '{not json';
+      final _MemStorage storage =
+          _MemStorage()..data[FTesterGuideStore.storageKey] = '{not json';
       await FTesterGuideStore.instance.configure(const FTesterGuide(), storage);
       expect(FTesterGuideStore.instance.showAtStartup, isTrue);
     });
@@ -91,12 +94,12 @@ void main() {
       await tester.pumpWidget(_app());
       await tester.pump();
 
-      expect(find.text('Before you report a bug'), findsOneWidget);
-      expect(find.text('Check the data first'), findsOneWidget);
+      expect(find.text('Before submitting a bug report'), findsOneWidget);
+      expect(find.text('Verify the data source'), findsOneWidget);
 
       await tester.tap(find.text('Got it'));
       await tester.pump();
-      expect(find.text('Before you report a bug'), findsNothing);
+      expect(find.text('Before submitting a bug report'), findsNothing);
     });
 
     testWidgets('is not shown again in the same session', (
@@ -111,7 +114,7 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(_app());
       await tester.pump();
-      expect(find.text('Before you report a bug'), findsNothing);
+      expect(find.text('Before submitting a bug report'), findsNothing);
     });
 
     testWidgets('"don\'t show again" is stored', (WidgetTester tester) async {
@@ -134,13 +137,33 @@ void main() {
       FTesterGuideStore.instance.setShowAtStartup(false);
       await tester.pumpWidget(_app());
       await tester.pump();
-      expect(find.text('Before you report a bug'), findsNothing);
+      expect(find.text('Before submitting a bug report'), findsNothing);
     });
 
     testWidgets('no guide configured → no dialog', (WidgetTester tester) async {
       await tester.pumpWidget(_app());
       await tester.pump();
-      expect(find.text('Before you report a bug'), findsNothing);
+      expect(find.text('Before submitting a bug report'), findsNothing);
+    });
+
+    testWidgets('shows the intro, the highlighted note and all nine steps', (
+      WidgetTester tester,
+    ) async {
+      await FTesterGuideStore.instance.configure(const FTesterGuide(), null);
+      await tester.pumpWidget(_app());
+      await tester.pump();
+
+      expect(
+        find.textContaining('Follow the intended flow, reproduce'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('may be returned for further investigation'),
+        findsOneWidget,
+      );
+      for (final FTesterGuideStep step in FTesterGuide.defaultSteps) {
+        expect(find.text(step.title), findsOneWidget, reason: step.title);
+      }
     });
 
     testWidgets('all text can be replaced (localisation)', (
@@ -150,6 +173,7 @@ void main() {
         const FTesterGuide(
           title: 'Sebelum melapor bug',
           intro: 'Baca dulu.',
+          note: 'Laporan tanpa bukti bisa dikembalikan.',
           steps: <FTesterGuideStep>[
             FTesterGuideStep('Rekam layar', 'Mulai sebelum langkah pertama.'),
           ],
@@ -163,6 +187,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('Sebelum melapor bug'), findsOneWidget);
+      expect(
+        find.text('Laporan tanpa bukti bisa dikembalikan.'),
+        findsOneWidget,
+      );
       expect(find.text('Rekam layar'), findsOneWidget);
       expect(find.text('Mengerti'), findsOneWidget);
       expect(find.text('Jangan tampilkan lagi'), findsOneWidget);
@@ -171,15 +199,79 @@ void main() {
     });
   });
 
+  group('default content', () {
+    test('steps are in the intended order', () {
+      expect(
+        FTesterGuide.defaultSteps.map((FTesterGuideStep s) => s.title),
+        <String>[
+          'Follow the intended flow',
+          'Record your screen',
+          'Reproduce the issue',
+          'Verify expected vs actual results',
+          'Verify the data source',
+          'Inspect API calls and errors',
+          'Check related behavior',
+          'Attach evidence, protect sensitive data',
+          'Write an actionable report',
+        ],
+      );
+    });
+
+    test('never presents a 200 or an empty response as proof', () {
+      final String api =
+          FTesterGuide.defaultSteps
+              .firstWhere(
+                (FTesterGuideStep s) => s.title.startsWith('Inspect API'),
+              )
+              .description!;
+      expect(api, contains("doesn't prove"));
+    });
+
+    testWidgets('an empty note is hidden', (WidgetTester tester) async {
+      await FTesterGuideStore.instance.configure(
+        const FTesterGuide(note: ''),
+        null,
+      );
+      await tester.pumpWidget(_app());
+      await tester.pump();
+      expect(find.textContaining('returned for further'), findsNothing);
+      expect(find.text('Before submitting a bug report'), findsOneWidget);
+    });
+  });
+
+  testWidgets(
+    'stays usable on a small screen (no overflow, buttons reachable)',
+    (WidgetTester tester) async {
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(960, 1440); // 320 x 480 logical
+      addTearDown(tester.view.reset);
+
+      await FTesterGuideStore.instance.configure(const FTesterGuide(), null);
+      await tester.pumpWidget(_app());
+      await tester.pump();
+
+      expect(find.text('Before submitting a bug report'), findsOneWidget);
+      // Long content scrolls inside the dialog; the actions stay on screen.
+      await tester.drag(
+        find.text('Follow the intended flow'),
+        const Offset(0, -200),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Got it'));
+      await tester.pump();
+      expect(find.text('Before submitting a bug report'), findsNothing);
+    },
+  );
+
   group('inspector menu', () {
     testWidgets('can reopen the guide and toggle startup', (
       WidgetTester tester,
     ) async {
       await FTesterGuideStore.instance.configure(const FTesterGuide(), null);
       FTesterGuideStore.instance.markShownThisSession();
-      await tester.pumpWidget(
-        const MaterialApp(home: NetworkLogListScreen()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: NetworkLogListScreen()));
 
       await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
@@ -188,7 +280,7 @@ void main() {
 
       await tester.tap(find.text('Tester guide'));
       await tester.pumpAndSettle();
-      expect(find.text('Before you report a bug'), findsOneWidget);
+      expect(find.text('Before submitting a bug report'), findsOneWidget);
       // Opened from inside the inspector: no redundant "Open inspector".
       expect(find.text('Open inspector'), findsNothing);
       await tester.tap(find.text('Got it'));
@@ -204,9 +296,7 @@ void main() {
     testWidgets('guide items are absent when no guide is configured', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: NetworkLogListScreen()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: NetworkLogListScreen()));
       await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
       expect(find.text('Tester guide'), findsNothing);
@@ -219,15 +309,16 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
-          builder: (BuildContext context) => TextButton(
-            onPressed: () => showTesterGuideDialog(context),
-            child: const Text('open'),
-          ),
+          builder:
+              (BuildContext context) => TextButton(
+                onPressed: () => showTesterGuideDialog(context),
+                child: const Text('open'),
+              ),
         ),
       ),
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('Before you report a bug'), findsOneWidget);
+    expect(find.text('Before submitting a bug report'), findsOneWidget);
   });
 }

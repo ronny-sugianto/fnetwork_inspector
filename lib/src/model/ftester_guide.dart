@@ -19,10 +19,14 @@ class FTesterGuideStep {
 class FTesterGuide {
   const FTesterGuide({
     this.version = 1,
-    this.title = 'Before you report a bug',
+    this.title = 'Before submitting a bug report',
     this.intro =
-        'Help the developers fix it faster. Please go through this before '
-        'opening a ticket.',
+        'Follow the intended flow, reproduce the issue, verify the expected '
+            'behavior, and validate the relevant API response. Attach sufficient '
+            'evidence to help the developer investigate.',
+    this.note =
+        'Reports that lack clear reproduction steps or sufficient evidence '
+            'may be returned for further investigation.',
     this.steps = defaultSteps,
     this.dontShowAgainLabel = "Don't show this again",
     this.confirmLabel = 'Got it',
@@ -35,6 +39,10 @@ class FTesterGuide {
 
   final String title;
   final String intro;
+
+  /// Optional extra remark shown as a highlighted note under [intro]. Empty
+  /// hides it.
+  final String note;
   final List<FTesterGuideStep> steps;
   final String dontShowAgainLabel;
   final String confirmLabel;
@@ -42,34 +50,64 @@ class FTesterGuide {
 
   static const List<FTesterGuideStep> defaultSteps = <FTesterGuideStep>[
     FTesterGuideStep(
+      'Follow the intended flow',
+      'Run the test scenario from start to finish, without skipping steps or '
+          'opening screens out of order. First confirm the prerequisites: '
+          'account permissions, required data, initial status and previous '
+          'actions.',
+    ),
+    FTesterGuideStep(
       'Record your screen',
-      'Start recording before the first step so the whole flow is captured.',
+      'Start recording before the first step and capture the whole flow, '
+          'including what leads to the issue and what happens after.',
     ),
     FTesterGuideStep(
-      'Reproduce it',
-      "Try again at least once. If you can't reproduce it, say so in the "
-          'report.',
+      'Reproduce the issue',
+      'Retry the same flow at least once. Note the exact steps, how often it '
+          "happens and under what conditions. Say clearly if it's "
+          "intermittent or can't be reproduced.",
     ),
     FTesterGuideStep(
-      'Check the data first',
-      'If something on screen looks wrong or missing, compare it with the API '
-          'response in the Network Inspector (and the database, if you have '
-          'access). The problem may be in the data, not in the app.',
+      'Verify expected vs actual results',
+      'Compare what happens with the expected behavior of the test scenario: '
+          'navigation, loading states, error messages, displayed data and the '
+          "result after submitting or refreshing. Don't assume unexpected "
+          "behavior is a bug until you've confirmed what is expected.",
     ),
     FTesterGuideStep(
-      'Inspect the API calls',
-      'Open the Network Inspector and look at the related requests: status '
-          'code, response body and any error.',
+      'Verify the data source',
+      'If data is missing, empty or wrong, compare the relevant API response '
+          'in the Network Inspector with what the app shows (and the database, '
+          'if you have access). Note whether the data is missing at the '
+          'source or the app fails to process or display it.',
     ),
     FTesterGuideStep(
-      'Attach the evidence',
-      'Share the request log (full report, cURL or the .har session) together '
-          'with your screen recording or screenshots.',
+      'Inspect API calls and errors',
+      'Check the related request: URL, method, status code, parameters, '
+          'response body and error details, plus application logs if '
+          "available. A 200 status or an empty response alone doesn't prove "
+          'the API is right or wrong; record what you observe.',
     ),
     FTesterGuideStep(
-      'Describe it clearly',
-      'Include the steps, expected vs actual result, build version, device '
-          'and environment. Avoid reports like "there is a bug".',
+      'Check related behavior',
+      'When relevant, check related screens, user states and adjacent flows. '
+          'Note the scope, impact and conditions, without testing unrelated '
+          'areas.',
+    ),
+    FTesterGuideStep(
+      'Attach evidence, protect sensitive data',
+      'Attach screen recordings or screenshots and technical evidence such '
+          'as the Network Inspector report, cURL command, HAR session or '
+          'application logs. Mask tokens, cookies, credentials and personal '
+          'information before sharing.',
+    ),
+    FTesterGuideStep(
+      'Write an actionable report',
+      'Include the affected feature, exact reproduction steps, expected and '
+          'actual result, frequency, impact, build version, device, OS and '
+          'environment, plus your findings and evidence. Avoid "there is a '
+          'bug", "it does not work" or "the data is empty". After a fix, '
+          'repeat the original scenario to confirm it is resolved.',
     ),
   ];
 }
