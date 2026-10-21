@@ -146,14 +146,14 @@ class FMockRule {
   String get label => '${method ?? 'ANY'} $pathPattern → $statusCode';
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'pathPattern': pathPattern,
-        if (method != null) 'method': method,
-        'statusCode': statusCode,
-        'contentType': contentType,
-        'body': body,
-        'isBase64': isBase64,
-        'delayMs': delayMs,
-        'enabled': enabled,
-      };
+    'id': id,
+    'pathPattern': pathPattern,
+    if (method != null) 'method': method,
+    'statusCode': statusCode,
+    'contentType': contentType,
+    'body': body,
+    'isBase64': isBase64,
+    'delayMs': delayMs,
+    'enabled': enabled,
+  };
 }

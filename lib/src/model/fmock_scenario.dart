@@ -25,12 +25,14 @@ class FMockScenario {
     return FMockScenario(
       id: json['id'] as String? ?? const Uuid().v4(),
       name: json['name'] as String? ?? 'Untitled',
-      rules: raw
-          .map(
-            (dynamic e) =>
-                FMockRule.fromJson((e as Map<dynamic, dynamic>).cast<String, dynamic>()),
-          )
-          .toList(),
+      rules:
+          raw
+              .map(
+                (dynamic e) => FMockRule.fromJson(
+                  (e as Map<dynamic, dynamic>).cast<String, dynamic>(),
+                ),
+              )
+              .toList(),
     );
   }
 
@@ -47,8 +49,8 @@ class FMockScenario {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'name': name,
-        'rules': rules.map((FMockRule r) => r.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'rules': rules.map((FMockRule r) => r.toJson()).toList(),
+  };
 }

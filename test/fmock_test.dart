@@ -23,8 +23,10 @@ void main() {
     });
 
     test('method filter is case-insensitive', () {
-      final FMockRule r =
-          FMockRule.create(pathPattern: '/users', method: 'post');
+      final FMockRule r = FMockRule.create(
+        pathPattern: '/users',
+        method: 'post',
+      );
       expect(r.matches('POST', '/users'), isTrue);
       expect(r.matches('GET', '/users'), isFalse);
     });
@@ -42,8 +44,10 @@ void main() {
     });
 
     test('disabled rule never matches', () {
-      final FMockRule r =
-          FMockRule.create(pathPattern: '/users', enabled: false);
+      final FMockRule r = FMockRule.create(
+        pathPattern: '/users',
+        enabled: false,
+      );
       expect(r.matches('GET', '/users'), isFalse);
     });
   });
@@ -56,8 +60,11 @@ void main() {
 
     test('base64 body is decoded', () {
       final String b64 = base64.encode(<int>[1, 2, 3, 250]);
-      final FMockRule r =
-          FMockRule.create(pathPattern: '/x', body: b64, isBase64: true);
+      final FMockRule r = FMockRule.create(
+        pathPattern: '/x',
+        body: b64,
+        isBase64: true,
+      );
       expect(r.bodyBytes, <int>[1, 2, 3, 250]);
     });
 
@@ -100,14 +107,12 @@ void main() {
     });
 
     test('first matching rule wins', () {
-      FMockStore.instance.add(FMockRule.create(
-        pathPattern: '/a',
-        statusCode: 500,
-      ));
-      FMockStore.instance.add(FMockRule.create(
-        pathPattern: '/a',
-        statusCode: 200,
-      ));
+      FMockStore.instance.add(
+        FMockRule.create(pathPattern: '/a', statusCode: 500),
+      );
+      FMockStore.instance.add(
+        FMockRule.create(pathPattern: '/a', statusCode: 200),
+      );
       // add() inserts at the front, so the 200 rule was added last / is first.
       expect(FMockStore.instance.match('GET', '/a')!.statusCode, 200);
     });
@@ -198,13 +203,15 @@ void main() {
     }
 
     test('serves a JSON mock without hitting the network', () async {
-      FMockStore.instance.add(FMockRule.create(
-        method: 'GET',
-        pathPattern: '/ping',
-        statusCode: 200,
-        contentType: 'application/json',
-        body: '{"pong": true}',
-      ));
+      FMockStore.instance.add(
+        FMockRule.create(
+          method: 'GET',
+          pathPattern: '/ping',
+          statusCode: 200,
+          contentType: 'application/json',
+          body: '{"pong": true}',
+        ),
+      );
 
       final Response<dynamic> res = await buildDio().get<dynamic>('/ping');
 
@@ -216,31 +223,37 @@ void main() {
     });
 
     test('non-2xx mock throws DioException', () async {
-      FMockStore.instance.add(FMockRule.create(
-        pathPattern: '/boom',
-        statusCode: 503,
-        contentType: 'text/plain',
-        body: 'unavailable',
-      ));
+      FMockStore.instance.add(
+        FMockRule.create(
+          pathPattern: '/boom',
+          statusCode: 503,
+          contentType: 'text/plain',
+          body: 'unavailable',
+        ),
+      );
 
       await expectLater(
         buildDio().get<dynamic>('/boom'),
-        throwsA(isA<DioException>().having(
-          (DioException e) => e.response?.statusCode,
-          'statusCode',
-          503,
-        )),
+        throwsA(
+          isA<DioException>().having(
+            (DioException e) => e.response?.statusCode,
+            'statusCode',
+            503,
+          ),
+        ),
       );
       expect(FNetworkStore.instance.logs.first.status, NetworkLogStatus.error);
     });
 
     test('applies the configured delay', () async {
-      FMockStore.instance.add(FMockRule.create(
-        pathPattern: '/slow',
-        body: 'ok',
-        contentType: 'text/plain',
-        delayMs: 200,
-      ));
+      FMockStore.instance.add(
+        FMockRule.create(
+          pathPattern: '/slow',
+          body: 'ok',
+          contentType: 'text/plain',
+          delayMs: 200,
+        ),
+      );
 
       final Stopwatch sw = Stopwatch()..start();
       await buildDio().get<dynamic>('/slow');
@@ -251,12 +264,14 @@ void main() {
 
   group('http interceptor', () {
     test('serves a mock and never calls the inner client', () async {
-      FMockStore.instance.add(FMockRule.create(
-        pathPattern: '/thing',
-        statusCode: 201,
-        contentType: 'application/json',
-        body: '{"created": 1}',
-      ));
+      FMockStore.instance.add(
+        FMockRule.create(
+          pathPattern: '/thing',
+          statusCode: 201,
+          contentType: 'application/json',
+          body: '{"created": 1}',
+        ),
+      );
 
       bool innerCalled = false;
       final FNetworkHttpInterceptor client = FNetworkHttpInterceptor(
@@ -266,8 +281,9 @@ void main() {
         }),
       );
 
-      final http.Response res =
-          await client.get(Uri.parse('https://example.com/thing'));
+      final http.Response res = await client.get(
+        Uri.parse('https://example.com/thing'),
+      );
 
       expect(innerCalled, isFalse);
       expect(res.statusCode, 201);
@@ -277,19 +293,22 @@ void main() {
 
     test('base64 mock is served as raw bytes', () async {
       final List<int> bytes = <int>[0, 1, 2, 3, 200, 255];
-      FMockStore.instance.add(FMockRule.create(
-        pathPattern: '/file.bin',
-        contentType: 'application/octet-stream',
-        body: base64.encode(bytes),
-        isBase64: true,
-      ));
+      FMockStore.instance.add(
+        FMockRule.create(
+          pathPattern: '/file.bin',
+          contentType: 'application/octet-stream',
+          body: base64.encode(bytes),
+          isBase64: true,
+        ),
+      );
 
       final FNetworkHttpInterceptor client = FNetworkHttpInterceptor(
         inner: MockClient((http.Request _) async => http.Response('', 500)),
       );
 
-      final http.Response res =
-          await client.get(Uri.parse('https://example.com/file.bin'));
+      final http.Response res = await client.get(
+        Uri.parse('https://example.com/file.bin'),
+      );
 
       expect(res.bodyBytes, bytes);
     });

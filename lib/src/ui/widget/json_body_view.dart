@@ -166,7 +166,8 @@ class _JsonBodyViewState extends State<JsonBodyView> {
       }
       // Closing bracket row, so the tree reads like the raw JSON. Empty
       // containers close inline (`{}` / `[]`) instead.
-      final bool empty = isMap ? value.isEmpty : (value as List<dynamic>).isEmpty;
+      final bool empty =
+          isMap ? value.isEmpty : (value as List<dynamic>).isEmpty;
       if (!empty) {
         out.add(_Row.closing(path, depth, isMap ? '}' : ']'));
       }
@@ -205,43 +206,44 @@ class _JsonBodyViewState extends State<JsonBodyView> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: _surface,
-      builder: (BuildContext ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.data_object, color: _textMuted),
-              title: Text(
-                row.isContainer ? 'Copy subtree (JSON)' : 'Copy value',
-                style: const TextStyle(color: _textPrimary, fontSize: 14),
-              ),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _copy(subtree, row.isContainer ? 'Subtree' : 'Value');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.alternate_email, color: _textMuted),
-              title: const Text(
-                'Copy path',
-                style: TextStyle(color: _textPrimary, fontSize: 14),
-              ),
-              subtitle: Text(
-                row.path,
-                style: const TextStyle(
-                  color: _textMuted,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+      builder:
+          (BuildContext ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.data_object, color: _textMuted),
+                  title: Text(
+                    row.isContainer ? 'Copy subtree (JSON)' : 'Copy value',
+                    style: const TextStyle(color: _textPrimary, fontSize: 14),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _copy(subtree, row.isContainer ? 'Subtree' : 'Value');
+                  },
                 ),
-              ),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _copy(row.path, 'Path');
-              },
+                ListTile(
+                  leading: const Icon(Icons.alternate_email, color: _textMuted),
+                  title: const Text(
+                    'Copy path',
+                    style: TextStyle(color: _textPrimary, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    row.path,
+                    style: const TextStyle(
+                      color: _textMuted,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _copy(row.path, 'Path');
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -352,8 +354,10 @@ class _JsonBodyViewState extends State<JsonBodyView> {
 
     // Genuinely large bodies get a capped, always-scrollable area instead of
     // making the whole card unmanageably tall.
-    final double maxHeight =
-        (MediaQuery.sizeOf(context).height * 0.55).clamp(240.0, 600.0);
+    final double maxHeight = (MediaQuery.sizeOf(context).height * 0.55).clamp(
+      240.0,
+      600.0,
+    );
     return Container(
       width: double.infinity,
       decoration: decoration,
@@ -403,11 +407,7 @@ class _JsonBodyViewState extends State<JsonBodyView> {
             }),
           ),
         ],
-        _iconBtn(
-          Icons.copy_all,
-          'Copy JSON',
-          () => _copy(_pretty, 'JSON'),
-        ),
+        _iconBtn(Icons.copy_all, 'Copy JSON', () => _copy(_pretty, 'JSON')),
       ],
     );
   }
@@ -485,8 +485,10 @@ class _JsonBodyViewState extends State<JsonBodyView> {
         isDense: true,
         filled: true,
         fillColor: _surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 10,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
           borderSide: const BorderSide(color: _border),
@@ -530,28 +532,37 @@ class _JsonBodyViewState extends State<JsonBodyView> {
     }
     if (row.isContainer) {
       final bool isMap = row.value is Map;
-      final int n = isMap
-          ? (row.value as Map<dynamic, dynamic>).length
-          : (row.value as List<dynamic>).length;
+      final int n =
+          isMap
+              ? (row.value as Map<dynamic, dynamic>).length
+              : (row.value as List<dynamic>).length;
       if (n == 0) {
-        spans.add(TextSpan(
-          text: isMap ? '{}' : '[]',
-          style: const TextStyle(color: _punct),
-        ));
+        spans.add(
+          TextSpan(
+            text: isMap ? '{}' : '[]',
+            style: const TextStyle(color: _punct),
+          ),
+        );
       } else if (row.expanded) {
-        spans.add(TextSpan(
-          text: isMap ? '{' : '[',
-          style: const TextStyle(color: _punct),
-        ));
+        spans.add(
+          TextSpan(
+            text: isMap ? '{' : '[',
+            style: const TextStyle(color: _punct),
+          ),
+        );
       } else {
-        spans.add(TextSpan(
-          text: isMap ? '{ … }' : '[ … ]',
-          style: const TextStyle(color: _punct),
-        ));
-        spans.add(TextSpan(
-          text: '  $n',
-          style: const TextStyle(color: _textMuted, fontSize: 10),
-        ));
+        spans.add(
+          TextSpan(
+            text: isMap ? '{ … }' : '[ … ]',
+            style: const TextStyle(color: _punct),
+          ),
+        );
+        spans.add(
+          TextSpan(
+            text: '  $n',
+            style: const TextStyle(color: _textMuted, fontSize: 10),
+          ),
+        );
       }
     } else {
       spans.addAll(_valueSpans(row.value));
@@ -567,11 +578,12 @@ class _JsonBodyViewState extends State<JsonBodyView> {
     );
 
     return InkWell(
-      onTap: row.isContainer
-          ? () => setState(() {
+      onTap:
+          row.isContainer
+              ? () => setState(() {
                 if (!_collapsed.remove(row.path)) _collapsed.add(row.path);
               })
-          : () => _copy(_literal(row.value), 'Value'),
+              : () => _copy(_literal(row.value), 'Value'),
       onLongPress: () => _rowMenu(row),
       child: Padding(
         padding: EdgeInsets.only(left: indent, top: 1, bottom: 1),
@@ -582,9 +594,7 @@ class _JsonBodyViewState extends State<JsonBodyView> {
               Padding(
                 padding: const EdgeInsets.only(top: 2, right: 2),
                 child: Icon(
-                  row.expanded
-                      ? Icons.arrow_drop_down
-                      : Icons.arrow_right,
+                  row.expanded ? Icons.arrow_drop_down : Icons.arrow_right,
                   size: 14,
                   color: _textMuted,
                 ),
@@ -628,10 +638,12 @@ class _JsonBodyViewState extends State<JsonBodyView> {
       if (idx > start) {
         out.add(TextSpan(text: text.substring(start, idx), style: style));
       }
-      out.add(TextSpan(
-        text: text.substring(idx, idx + q.length),
-        style: style.copyWith(backgroundColor: _matchBg, color: _textPrimary),
-      ));
+      out.add(
+        TextSpan(
+          text: text.substring(idx, idx + q.length),
+          style: style.copyWith(backgroundColor: _matchBg, color: _textPrimary),
+        ),
+      );
       start = idx + q.length;
       idx = lower.indexOf(q, start);
     }
@@ -660,10 +672,10 @@ class _Row {
 
   /// A non-interactive row holding just the closing `}` / `]` of [path].
   const _Row.closing(this.path, this.depth, this.closeChar)
-      : key = null,
-        value = null,
-        isContainer = false,
-        expanded = false;
+    : key = null,
+      value = null,
+      isContainer = false,
+      expanded = false;
 
   final String? closeChar;
 

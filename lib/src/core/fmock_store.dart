@@ -97,8 +97,9 @@ class FMockStore with ChangeNotifier {
   FMockScenario saveAsScenario(String name) {
     final List<FMockRule> snapshot =
         _rules.map((FMockRule r) => r.copyWith()).toList();
-    final int existing =
-        _scenarios.indexWhere((FMockScenario s) => s.name == name);
+    final int existing = _scenarios.indexWhere(
+      (FMockScenario s) => s.name == name,
+    );
     final FMockScenario scenario;
     if (existing >= 0) {
       scenario = _scenarios[existing].copyWith(rules: snapshot);
@@ -188,13 +189,14 @@ class FMockStore with ChangeNotifier {
   void importJson(String source, {bool notify = true, bool merge = false}) {
     final Object? decoded = jsonDecode(source);
 
-    List<FMockRule> parseRules(List<dynamic> raw) => raw
-        .map(
-          (dynamic e) => FMockRule.fromJson(
-            (e as Map<dynamic, dynamic>).cast<String, dynamic>(),
-          ),
-        )
-        .toList();
+    List<FMockRule> parseRules(List<dynamic> raw) =>
+        raw
+            .map(
+              (dynamic e) => FMockRule.fromJson(
+                (e as Map<dynamic, dynamic>).cast<String, dynamic>(),
+              ),
+            )
+            .toList();
 
     if (decoded is List) {
       final List<FMockRule> rules = parseRules(decoded);
@@ -211,8 +213,9 @@ class FMockStore with ChangeNotifier {
 
     final Map<String, dynamic> json =
         (decoded as Map<dynamic, dynamic>).cast<String, dynamic>();
-    final List<FMockRule> rules =
-        parseRules((json['rules'] as List<dynamic>?) ?? const <dynamic>[]);
+    final List<FMockRule> rules = parseRules(
+      (json['rules'] as List<dynamic>?) ?? const <dynamic>[],
+    );
     final List<FMockScenario> scenarios =
         ((json['scenarios'] as List<dynamic>?) ?? const <dynamic>[])
             .map(

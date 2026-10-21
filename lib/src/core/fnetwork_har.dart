@@ -9,7 +9,7 @@ import 'package:fnetwork_inspector/src/model/network_log.dart';
 class FNetworkHar {
   FNetworkHar._();
 
-  static const String _version = '0.5.0';
+  static const String _version = '0.5.1';
 
   /// Serialises [logs] to a pretty-printed HAR JSON string.
   ///
@@ -20,10 +20,13 @@ class FNetworkHar {
     String creatorName = 'fnetwork_inspector',
     String creatorVersion = _version,
   }) {
-    final List<NetworkLog> sorted = logs
-        .where((NetworkLog l) => l.status != NetworkLogStatus.loading)
-        .toList()
-      ..sort((NetworkLog a, NetworkLog b) => a.startTime.compareTo(b.startTime));
+    final List<NetworkLog> sorted =
+        logs
+            .where((NetworkLog l) => l.status != NetworkLogStatus.loading)
+            .toList()
+          ..sort(
+            (NetworkLog a, NetworkLog b) => a.startTime.compareTo(b.startTime),
+          );
 
     final Map<String, dynamic> har = <String, dynamic>{
       'log': <String, dynamic>{
@@ -116,8 +119,9 @@ class FNetworkHar {
   static List<Map<String, String>> _queryString(String path) {
     final int q = path.indexOf('?');
     if (q == -1 || q == path.length - 1) return <Map<String, String>>[];
-    final Map<String, String> params =
-        Uri.splitQueryString(path.substring(q + 1));
+    final Map<String, String> params = Uri.splitQueryString(
+      path.substring(q + 1),
+    );
     return params.entries
         .map(
           (MapEntry<String, String> e) => <String, String>{

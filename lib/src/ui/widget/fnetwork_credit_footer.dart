@@ -18,9 +18,7 @@ class FNetworkCreditFooter extends StatelessWidget {
         color: _surface,
         child: InkWell(
           onTap: () {
-            Clipboard.setData(
-              const ClipboardData(text: kFNetworkInspectorUrl),
-            );
+            Clipboard.setData(const ClipboardData(text: kFNetworkInspectorUrl));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('rons.my.id copied'),

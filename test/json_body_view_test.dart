@@ -63,21 +63,18 @@ void main() {
     expect(find.byType(Scrollbar), findsOneWidget);
   });
 
-  testWidgets(
-    'small JSON body renders inline with no internal scrollbar '
-    '(regression: was appearing cut off)',
-    (WidgetTester tester) async {
-      await _pump(
-        tester,
-        '{"status":200,"message":"ok","data":[{"a":1},{"a":2}]}',
-      );
-      // Everything must be reachable via the outer page scroll alone — no
-      // nested scrollable competing for the drag gesture.
-      expect(find.byType(Scrollbar), findsNothing);
-      expect(find.textContaining('status'), findsOneWidget);
-      expect(find.textContaining('data'), findsOneWidget);
-    },
-  );
+  testWidgets('small JSON body renders inline with no internal scrollbar '
+      '(regression: was appearing cut off)', (WidgetTester tester) async {
+    await _pump(
+      tester,
+      '{"status":200,"message":"ok","data":[{"a":1},{"a":2}]}',
+    );
+    // Everything must be reachable via the outer page scroll alone — no
+    // nested scrollable competing for the drag gesture.
+    expect(find.byType(Scrollbar), findsNothing);
+    expect(find.textContaining('status'), findsOneWidget);
+    expect(find.textContaining('data'), findsOneWidget);
+  });
 
   testWidgets(
     'tree renders closing brackets (regression: looked cut off vs Raw)',
@@ -116,10 +113,7 @@ void main() {
   testWidgets('search filters rows to matches and their ancestors', (
     WidgetTester tester,
   ) async {
-    await _pump(
-      tester,
-      '{"alpha":{"keep":"yes"},"beta":{"drop":"no"}}',
-    );
+    await _pump(tester, '{"alpha":{"keep":"yes"},"beta":{"drop":"no"}}');
 
     await tester.tap(find.byTooltip('Search'));
     await tester.pump();

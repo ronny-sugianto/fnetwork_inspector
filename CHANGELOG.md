@@ -1,3 +1,7 @@
+## 0.5.1
+
+- Code formatted with `dart format` (the whole package, including tests and the example). No functional changes. Also re-triggers pub.dev's analysis of the 0.5 line.
+
 ## 0.5.0
 
 **Tester guide**

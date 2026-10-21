@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 NetworkLog _log(String id, {String? body}) => NetworkLog(
-      id: id,
-      method: 'GET',
-      path: '/p/$id',
-      baseUrl: 'https://x.com',
-      status: NetworkLogStatus.success,
-      startTime: DateTime.now(),
-      statusCode: 200,
-      durationMs: 5,
-      responseBody: body,
-    );
+  id: id,
+  method: 'GET',
+  path: '/p/$id',
+  baseUrl: 'https://x.com',
+  status: NetworkLogStatus.success,
+  startTime: DateTime.now(),
+  statusCode: 200,
+  durationMs: 5,
+  responseBody: body,
+);
 
 void main() {
   setUp(() {
@@ -28,8 +28,11 @@ void main() {
     for (int i = 0; i < 5; i++) {
       FNetworkStore.instance.onRequest(_log('r$i'));
     }
-    expect(FNetworkStore.instance.logs.map((NetworkLog l) => l.id),
-        <String>['r4', 'r3', 'r2']);
+    expect(FNetworkStore.instance.logs.map((NetworkLog l) => l.id), <String>[
+      'r4',
+      'r3',
+      'r2',
+    ]);
   });
 
   test('lowering maxLogs trims immediately', () {

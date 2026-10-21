@@ -45,41 +45,41 @@ class FNetworkProfilePreset {
 
   static const Map<FNetworkProfile, FNetworkProfilePreset> byProfile =
       <FNetworkProfile, FNetworkProfilePreset>{
-    FNetworkProfile.offline: FNetworkProfilePreset(
-      label: 'Offline',
-      latencyMs: 0,
-      downloadKbps: 0,
-      uploadKbps: 0,
-    ),
-    FNetworkProfile.twoG: FNetworkProfilePreset(
-      label: '2G',
-      latencyMs: 800,
-      downloadKbps: 50,
-      uploadKbps: 20,
-    ),
-    FNetworkProfile.edge: FNetworkProfilePreset(
-      label: 'Edge',
-      latencyMs: 400,
-      downloadKbps: 250,
-      uploadKbps: 200,
-    ),
-    FNetworkProfile.threeG: FNetworkProfilePreset(
-      label: '3G',
-      latencyMs: 150,
-      downloadKbps: 1000,
-      uploadKbps: 500,
-    ),
-    FNetworkProfile.fourG: FNetworkProfilePreset(
-      label: '4G',
-      latencyMs: 40,
-      downloadKbps: 6000,
-      uploadKbps: 3000,
-    ),
-    FNetworkProfile.fiveG: FNetworkProfilePreset(
-      label: '5G',
-      latencyMs: 5,
-      downloadKbps: 50000,
-      uploadKbps: 20000,
-    ),
-  };
+        FNetworkProfile.offline: FNetworkProfilePreset(
+          label: 'Offline',
+          latencyMs: 0,
+          downloadKbps: 0,
+          uploadKbps: 0,
+        ),
+        FNetworkProfile.twoG: FNetworkProfilePreset(
+          label: '2G',
+          latencyMs: 800,
+          downloadKbps: 50,
+          uploadKbps: 20,
+        ),
+        FNetworkProfile.edge: FNetworkProfilePreset(
+          label: 'Edge',
+          latencyMs: 400,
+          downloadKbps: 250,
+          uploadKbps: 200,
+        ),
+        FNetworkProfile.threeG: FNetworkProfilePreset(
+          label: '3G',
+          latencyMs: 150,
+          downloadKbps: 1000,
+          uploadKbps: 500,
+        ),
+        FNetworkProfile.fourG: FNetworkProfilePreset(
+          label: '4G',
+          latencyMs: 40,
+          downloadKbps: 6000,
+          uploadKbps: 3000,
+        ),
+        FNetworkProfile.fiveG: FNetworkProfilePreset(
+          label: '5G',
+          latencyMs: 5,
+          downloadKbps: 50000,
+          uploadKbps: 20000,
+        ),
+      };
 }

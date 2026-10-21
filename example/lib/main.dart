@@ -34,7 +34,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'fnetwork_inspector example',
-      builder: (BuildContext context, Widget? child) => FNetworkInspectorOverlay(
+      builder: (BuildContext context, Widget? child) =>
+          FNetworkInspectorOverlay(
         enabled: kDebugMode,
         child: child!,
       ),

@@ -53,14 +53,14 @@ Color _methodColor(String method) {
 }
 
 ThemeData _darkTheme() => ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: _bg,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: _surface,
-        foregroundColor: _textPrimary,
-        elevation: 0,
-      ),
-      dividerColor: _border,
-    );
+  scaffoldBackgroundColor: _bg,
+  appBarTheme: const AppBarTheme(
+    backgroundColor: _surface,
+    foregroundColor: _textPrimary,
+    elevation: 0,
+  ),
+  dividerColor: _border,
+);
 
 /// Lists and manages in-memory [FMockRule]s.
 class NetworkMockListScreen extends StatefulWidget {
@@ -208,31 +208,35 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
                         _importJson();
                     }
                   },
-                  itemBuilder: (BuildContext context) =>
-                      <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(
-                      value: 'save_scenario',
-                      child: _MenuRow(Icons.bookmark_add_outlined,
-                          'Save as scenario…'),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'scenarios',
-                      child: _MenuRow(
-                        Icons.layers_outlined,
-                        'Scenarios (${_store.scenarios.length})',
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem<String>(
-                      value: 'export',
-                      child: _MenuRow(Icons.ios_share, 'Export (JSON)'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'import',
-                      child: _MenuRow(Icons.file_download_outlined,
-                          'Import (JSON)…'),
-                    ),
-                  ],
+                  itemBuilder:
+                      (BuildContext context) => <PopupMenuEntry<String>>[
+                        const PopupMenuItem<String>(
+                          value: 'save_scenario',
+                          child: _MenuRow(
+                            Icons.bookmark_add_outlined,
+                            'Save as scenario…',
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'scenarios',
+                          child: _MenuRow(
+                            Icons.layers_outlined,
+                            'Scenarios (${_store.scenarios.length})',
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem<String>(
+                          value: 'export',
+                          child: _MenuRow(Icons.ios_share, 'Export (JSON)'),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'import',
+                          child: _MenuRow(
+                            Icons.file_download_outlined,
+                            'Import (JSON)…',
+                          ),
+                        ),
+                      ],
                 ),
               ],
               bottom: PreferredSize(
@@ -245,15 +249,17 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
                 if (_store.activeScenario != null) _buildScenarioBanner(),
                 if (!_store.enabled) _buildDisabledBanner(),
                 Expanded(
-                  child: rules.isEmpty
-                      ? _buildEmpty()
-                      : ListView.separated(
-                          itemCount: rules.length,
-                          separatorBuilder: (_, _) =>
-                              Container(height: 1, color: _border),
-                          itemBuilder: (BuildContext context, int i) =>
-                              _buildTile(rules[i]),
-                        ),
+                  child:
+                      rules.isEmpty
+                          ? _buildEmpty()
+                          : ListView.separated(
+                            itemCount: rules.length,
+                            separatorBuilder:
+                                (_, _) => Container(height: 1, color: _border),
+                            itemBuilder:
+                                (BuildContext context, int i) =>
+                                    _buildTile(rules[i]),
+                          ),
                 ),
               ],
             ),
@@ -357,9 +363,10 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
 
   Widget _buildTile(FMockRule rule) {
     final Color mColor = _methodColor(rule.method ?? 'ANY');
-    final Color statusColor = rule.statusCode >= 200 && rule.statusCode < 300
-        ? _green
-        : (rule.statusCode >= 400 ? _red : _orange);
+    final Color statusColor =
+        rule.statusCode >= 200 && rule.statusCode < 300
+            ? _green
+            : (rule.statusCode >= 400 ? _red : _orange);
     final bool dim = !rule.enabled || !_store.enabled;
 
     return Opacity(
@@ -430,7 +437,9 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
                           child: Text(
                             rule.contentType +
                                 (rule.isBase64 ? ' · base64' : '') +
-                                (rule.delayMs > 0 ? ' · ${rule.delayMs}ms' : ''),
+                                (rule.delayMs > 0
+                                    ? ' · ${rule.delayMs}ms'
+                                    : ''),
                             style: const TextStyle(
                               color: _textMuted,
                               fontSize: 11,
@@ -488,8 +497,9 @@ class _MockRuleEditScreenState extends State<MockRuleEditScreen> {
     _method = r?.method ?? 'ANY';
     _path = TextEditingController(text: r?.pathPattern ?? '');
     _status = TextEditingController(text: '${r?.statusCode ?? 200}');
-    _contentType =
-        TextEditingController(text: r?.contentType ?? 'application/json');
+    _contentType = TextEditingController(
+      text: r?.contentType ?? 'application/json',
+    );
     _body = TextEditingController(text: r?.body ?? '');
     _delay = TextEditingController(text: '${r?.delayMs ?? 0}');
     _isBase64 = r?.isBase64 ?? false;
@@ -517,30 +527,32 @@ class _MockRuleEditScreenState extends State<MockRuleEditScreen> {
       return;
     }
     final int delay = int.tryParse(_delay.text.trim()) ?? 0;
-    final String contentType = _contentType.text.trim().isEmpty
-        ? 'application/octet-stream'
-        : _contentType.text.trim();
+    final String contentType =
+        _contentType.text.trim().isEmpty
+            ? 'application/octet-stream'
+            : _contentType.text.trim();
     final String? method = _method == 'ANY' ? null : _method;
 
-    final FMockRule result = widget.initial == null
-        ? FMockRule.create(
-            pathPattern: path,
-            method: method,
-            statusCode: status,
-            contentType: contentType,
-            body: _body.text,
-            isBase64: _isBase64,
-            delayMs: delay < 0 ? 0 : delay,
-          )
-        : widget.initial!.copyWith(
-            pathPattern: path,
-            method: method,
-            statusCode: status,
-            contentType: contentType,
-            body: _body.text,
-            isBase64: _isBase64,
-            delayMs: delay < 0 ? 0 : delay,
-          );
+    final FMockRule result =
+        widget.initial == null
+            ? FMockRule.create(
+              pathPattern: path,
+              method: method,
+              statusCode: status,
+              contentType: contentType,
+              body: _body.text,
+              isBase64: _isBase64,
+              delayMs: delay < 0 ? 0 : delay,
+            )
+            : widget.initial!.copyWith(
+              pathPattern: path,
+              method: method,
+              statusCode: status,
+              contentType: contentType,
+              body: _body.text,
+              isBase64: _isBase64,
+              delayMs: delay < 0 ? 0 : delay,
+            );
     Navigator.of(context).pop(result);
   }
 
@@ -551,8 +563,7 @@ class _MockRuleEditScreenState extends State<MockRuleEditScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            widget.title ??
-                (widget.initial == null ? 'New Mock' : 'Edit Mock'),
+            widget.title ?? (widget.initial == null ? 'New Mock' : 'Edit Mock'),
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           actions: <Widget>[
@@ -597,48 +608,46 @@ class _MockRuleEditScreenState extends State<MockRuleEditScreen> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: _methodOptions.map((String m) {
-                final bool active = _method == m;
-                final Color c = _methodColor(m);
-                return GestureDetector(
-                  onTap: () => setState(() => _method = m),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: active
-                          ? c.withValues(alpha: 0.15)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: active ? c : _border,
-                        width: active ? 1.5 : 1,
+              children:
+                  _methodOptions.map((String m) {
+                    final bool active = _method == m;
+                    final Color c = _methodColor(m);
+                    return GestureDetector(
+                      onTap: () => setState(() => _method = m),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              active
+                                  ? c.withValues(alpha: 0.15)
+                                  : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: active ? c : _border,
+                            width: active ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          m,
+                          style: TextStyle(
+                            color: active ? c : _textMuted,
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                            fontWeight:
+                                active ? FontWeight.w700 : FontWeight.normal,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      m,
-                      style: TextStyle(
-                        color: active ? c : _textMuted,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                        fontWeight:
-                            active ? FontWeight.w700 : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
             const SizedBox(height: 20),
             const _Label('PATH PATTERN'),
             const SizedBox(height: 8),
-            _field(
-              _path,
-              hint: '/api/v1/users/*  or  /profiles/',
-              mono: true,
-            ),
+            _field(_path, hint: '/api/v1/users/*  or  /profiles/', mono: true),
             const SizedBox(height: 6),
             const Text(
               'Contains "*" → glob match. Otherwise substring match. Query string is ignored.',
@@ -689,30 +698,31 @@ class _MockRuleEditScreenState extends State<MockRuleEditScreen> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: _contentTypePresets.map((String ct) {
-                return GestureDetector(
-                  onTap: () => setState(() => _contentType.text = ct),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _border),
-                    ),
-                    child: Text(
-                      ct,
-                      style: const TextStyle(
-                        color: _textMuted,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
+              children:
+                  _contentTypePresets.map((String ct) {
+                    return GestureDetector(
+                      onTap: () => setState(() => _contentType.text = ct),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: _border),
+                        ),
+                        child: Text(
+                          ct,
+                          style: const TextStyle(
+                            color: _textMuted,
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
             const SizedBox(height: 20),
             Row(
@@ -748,9 +758,10 @@ class _MockRuleEditScreenState extends State<MockRuleEditScreen> {
                   height: 1.5,
                 ),
                 decoration: InputDecoration(
-                  hintText: _isBase64
-                      ? 'Base64-encoded bytes (e.g. an image or PDF)…'
-                      : '{ "message": "mocked" }',
+                  hintText:
+                      _isBase64
+                          ? 'Base64-encoded bytes (e.g. an image or PDF)…'
+                          : '{ "message": "mocked" }',
                   hintStyle: const TextStyle(color: _textMuted, fontSize: 12),
                   contentPadding: const EdgeInsets.all(12),
                   border: InputBorder.none,
@@ -795,8 +806,10 @@ class _MockRuleEditScreenState extends State<MockRuleEditScreen> {
         filled: true,
         fillColor: _surface,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: _border),
@@ -864,44 +877,45 @@ Future<String?> promptText(
   final TextEditingController controller = TextEditingController(text: initial);
   return showDialog<String>(
     context: context,
-    builder: (BuildContext ctx) => AlertDialog(
-      backgroundColor: _surface,
-      title: Text(
-        title,
-        style: const TextStyle(color: _textPrimary, fontSize: 15),
-      ),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        maxLines: multiline ? 8 : 1,
-        minLines: multiline ? 4 : 1,
-        style: TextStyle(
-          color: _textPrimary,
-          fontSize: 13,
-          fontFamily: multiline ? 'monospace' : null,
-        ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
-          enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: _border),
+    builder:
+        (BuildContext ctx) => AlertDialog(
+          backgroundColor: _surface,
+          title: Text(
+            title,
+            style: const TextStyle(color: _textPrimary, fontSize: 15),
           ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: _blue),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: multiline ? 8 : 1,
+            minLines: multiline ? 4 : 1,
+            style: TextStyle(
+              color: _textPrimary,
+              fontSize: 13,
+              fontFamily: multiline ? 'monospace' : null,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: _border),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: _blue),
+              ),
+            ),
           ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: _textMuted)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: Text(confirmLabel, style: const TextStyle(color: _blue)),
+            ),
+          ],
         ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel', style: TextStyle(color: _textMuted)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(controller.text),
-          child: Text(confirmLabel, style: const TextStyle(color: _blue)),
-        ),
-      ],
-    ),
   );
 }
 
@@ -1008,49 +1022,58 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                 child: Container(height: 1, color: _border),
               ),
             ),
-            body: list.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          const Icon(Icons.layers_outlined,
-                              color: _textMuted, size: 40),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'No scenarios yet',
-                            style: TextStyle(color: _textMuted, fontSize: 14),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Build up some mock rules, then save them\nas a named scenario to switch back to later.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: _textMuted, fontSize: 12, height: 1.5),
-                          ),
-                          const SizedBox(height: 16),
-                          OutlinedButton.icon(
-                            onPressed: _saveCurrent,
-                            icon: const Icon(Icons.bookmark_add_outlined,
-                                size: 18),
-                            label: const Text('Save current rules'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: _blue,
-                              side: const BorderSide(color: _border),
+            body:
+                list.isEmpty
+                    ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.layers_outlined,
+                              color: _textMuted,
+                              size: 40,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No scenarios yet',
+                              style: TextStyle(color: _textMuted, fontSize: 14),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Build up some mock rules, then save them\nas a named scenario to switch back to later.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: _textMuted,
+                                fontSize: 12,
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            OutlinedButton.icon(
+                              onPressed: _saveCurrent,
+                              icon: const Icon(
+                                Icons.bookmark_add_outlined,
+                                size: 18,
+                              ),
+                              label: const Text('Save current rules'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: _blue,
+                                side: const BorderSide(color: _border),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    )
+                    : ListView.separated(
+                      itemCount: list.length,
+                      separatorBuilder:
+                          (_, _) => Container(height: 1, color: _border),
+                      itemBuilder:
+                          (BuildContext context, int i) => _buildTile(list[i]),
                     ),
-                  )
-                : ListView.separated(
-                    itemCount: list.length,
-                    separatorBuilder: (_, _) =>
-                        Container(height: 1, color: _border),
-                    itemBuilder: (BuildContext context, int i) =>
-                        _buildTile(list[i]),
-                  ),
             bottomNavigationBar: const FNetworkCreditFooter(),
           );
         },
@@ -1139,25 +1162,26 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                     _store.deleteScenario(s.id);
                 }
               },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'apply',
-                  child: _MenuRow(Icons.play_arrow, 'Apply'),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'rename',
-                  child: _MenuRow(Icons.edit_outlined, 'Rename'),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'share',
-                  child: _MenuRow(Icons.ios_share, 'Share (JSON)'),
-                ),
-                const PopupMenuDivider(),
-                const PopupMenuItem<String>(
-                  value: 'delete',
-                  child: _MenuRow(Icons.delete_outline, 'Delete'),
-                ),
-              ],
+              itemBuilder:
+                  (BuildContext context) => <PopupMenuEntry<String>>[
+                    const PopupMenuItem<String>(
+                      value: 'apply',
+                      child: _MenuRow(Icons.play_arrow, 'Apply'),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'rename',
+                      child: _MenuRow(Icons.edit_outlined, 'Rename'),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'share',
+                      child: _MenuRow(Icons.ios_share, 'Share (JSON)'),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: _MenuRow(Icons.delete_outline, 'Delete'),
+                    ),
+                  ],
             ),
           ],
         ),

@@ -28,7 +28,8 @@ class FNetworkHttpInterceptor extends http.BaseClient {
     final Uri uri = request.url;
     final String path =
         uri.path + (uri.query.isNotEmpty ? '?${uri.query}' : '');
-    final String baseUrl = '${uri.scheme}://${uri.host}'
+    final String baseUrl =
+        '${uri.scheme}://${uri.host}'
         '${uri.hasPort && uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
 
     String? requestBody;
@@ -66,7 +67,8 @@ class FNetworkHttpInterceptor extends http.BaseClient {
       return _serveChaos(request, id, startMs);
     }
     final int reqBytes = utf8.encode(requestBody ?? '').length;
-    final int preDelay = FChaosStore.instance.activeDelayMs +
+    final int preDelay =
+        FChaosStore.instance.activeDelayMs +
         FChaosStore.instance.uploadDelayMs(reqBytes);
     if (preDelay > 0) {
       await Future<void>.delayed(Duration(milliseconds: preDelay));
@@ -75,8 +77,9 @@ class FNetworkHttpInterceptor extends http.BaseClient {
     try {
       final http.StreamedResponse response = await _inner.send(request);
       final List<int> bodyBytes = await response.stream.toBytes();
-      final int extraDelay =
-          FChaosStore.instance.downloadDelayMs(bodyBytes.length);
+      final int extraDelay = FChaosStore.instance.downloadDelayMs(
+        bodyBytes.length,
+      );
       if (extraDelay > 0) {
         await Future<void>.delayed(Duration(milliseconds: extraDelay));
       }
@@ -87,8 +90,9 @@ class FNetworkHttpInterceptor extends http.BaseClient {
         responseBody = utf8.decode(bodyBytes, allowMalformed: true);
       } catch (_) {}
 
-      final Map<String, dynamic> responseHeaders =
-          Map<String, dynamic>.from(response.headers);
+      final Map<String, dynamic> responseHeaders = Map<String, dynamic>.from(
+        response.headers,
+      );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         FNetworkStore.instance.onSuccess(

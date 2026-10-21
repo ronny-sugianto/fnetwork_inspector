@@ -14,8 +14,8 @@ class FNetworkDioInterceptor extends Interceptor {
   FNetworkDioInterceptor({
     bool enableInspection = true,
     bool enableNotifications = false,
-  })  : _enableInspection = enableInspection,
-        _enableNotifications = enableNotifications && !kIsWeb;
+  }) : _enableInspection = enableInspection,
+       _enableNotifications = enableNotifications && !kIsWeb;
 
   final bool _enableInspection;
   final bool _enableNotifications;
@@ -82,8 +82,8 @@ class FNetworkDioInterceptor extends Interceptor {
         _resolveChaos(options, handler, requestId, startMs);
         return;
       }
-      final int preDelay = _chaos.activeDelayMs +
-          _chaos.uploadDelayMs(_byteLength(requestBody));
+      final int preDelay =
+          _chaos.activeDelayMs + _chaos.uploadDelayMs(_byteLength(requestBody));
       if (preDelay > 0) {
         Future<void>.delayed(
           Duration(milliseconds: preDelay),
@@ -314,16 +314,15 @@ class FNetworkDioInterceptor extends Interceptor {
   @override
   // ignore: always_specify_types
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    if (_enableInspection &&
-        response.requestOptions.extra[_mockKey] != true) {
+    if (_enableInspection && response.requestOptions.extra[_mockKey] != true) {
       final String? requestId =
           response.requestOptions.extra[_requestIdKey] as String?;
-      final int? startMs =
-          response.requestOptions.extra[_startTimeKey] as int?;
+      final int? startMs = response.requestOptions.extra[_startTimeKey] as int?;
 
       if (requestId != null && startMs != null) {
-        final int extraDelay =
-            _chaos.downloadDelayMs(_byteLength(_encodeBody(response.data)));
+        final int extraDelay = _chaos.downloadDelayMs(
+          _byteLength(_encodeBody(response.data)),
+        );
         if (extraDelay > 0) {
           Future<void>.delayed(Duration(milliseconds: extraDelay), () {
             _completeSuccess(requestId, startMs, response);
@@ -374,9 +373,12 @@ class FNetworkDioInterceptor extends Interceptor {
       final int? startMs = err.requestOptions.extra[_startTimeKey] as int?;
 
       if (requestId != null && startMs != null) {
-        final int extraDelay = err.response != null
-            ? _chaos.downloadDelayMs(_byteLength(_encodeBody(err.response!.data)))
-            : 0;
+        final int extraDelay =
+            err.response != null
+                ? _chaos.downloadDelayMs(
+                  _byteLength(_encodeBody(err.response!.data)),
+                )
+                : 0;
         if (extraDelay > 0) {
           Future<void>.delayed(Duration(milliseconds: extraDelay), () {
             _completeError(requestId, startMs, err);
@@ -401,9 +403,8 @@ class FNetworkDioInterceptor extends Interceptor {
       statusCode,
       errorMessage,
       durationMs,
-      responseBody: err.response?.data != null
-          ? _encodeBody(err.response!.data)
-          : null,
+      responseBody:
+          err.response?.data != null ? _encodeBody(err.response!.data) : null,
     );
 
     if (_enableNotifications) {

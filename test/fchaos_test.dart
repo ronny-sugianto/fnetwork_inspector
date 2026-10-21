@@ -36,9 +36,10 @@ void main() {
     });
 
     test('failRate clamps to 0..1', () {
-      final FChaosStore c = FChaosStore.instance
-        ..failRate = 5
-        ..enabled = true;
+      final FChaosStore c =
+          FChaosStore.instance
+            ..failRate = 5
+            ..enabled = true;
       expect(c.failRate, 1.0);
       c.failRate = -1;
       expect(c.failRate, 0.0);
@@ -47,8 +48,8 @@ void main() {
 
   group('FNetworkProfile presets', () {
     test('applyProfile sets latency + bandwidth from the preset', () {
-      final FChaosStore c = FChaosStore.instance
-        ..applyProfile(FNetworkProfile.threeG);
+      final FChaosStore c =
+          FChaosStore.instance..applyProfile(FNetworkProfile.threeG);
       expect(c.profile, FNetworkProfile.threeG);
       expect(c.latencyMs, 150);
       expect(c.downloadKbps, 1000);
@@ -56,17 +57,18 @@ void main() {
     });
 
     test('applyProfile(none) clears bandwidth throttling', () {
-      final FChaosStore c = FChaosStore.instance
-        ..applyProfile(FNetworkProfile.fourG)
-        ..applyProfile(FNetworkProfile.none);
+      final FChaosStore c =
+          FChaosStore.instance
+            ..applyProfile(FNetworkProfile.fourG)
+            ..applyProfile(FNetworkProfile.none);
       expect(c.profile, FNetworkProfile.none);
       expect(c.downloadKbps, 0);
       expect(c.uploadKbps, 0);
     });
 
     test('manually editing latency or bandwidth marks the profile custom', () {
-      final FChaosStore c = FChaosStore.instance
-        ..applyProfile(FNetworkProfile.fourG);
+      final FChaosStore c =
+          FChaosStore.instance..applyProfile(FNetworkProfile.fourG);
       c.latencyMs = 999;
       expect(c.profile, FNetworkProfile.none);
 
@@ -76,18 +78,19 @@ void main() {
     });
 
     test('isOffline requires both enabled and the offline profile', () {
-      final FChaosStore c = FChaosStore.instance
-        ..applyProfile(FNetworkProfile.offline);
+      final FChaosStore c =
+          FChaosStore.instance..applyProfile(FNetworkProfile.offline);
       expect(c.isOffline, isFalse, reason: 'not enabled yet');
       c.enabled = true;
       expect(c.isOffline, isTrue);
     });
 
     test('uploadDelayMs / downloadDelayMs estimate from payload size', () {
-      final FChaosStore c = FChaosStore.instance
-        ..enabled = true
-        ..downloadKbps = 8
-        ..uploadKbps = 16;
+      final FChaosStore c =
+          FChaosStore.instance
+            ..enabled = true
+            ..downloadKbps = 8
+            ..uploadKbps = 16;
       expect(c.downloadDelayMs(1000), 1000);
       expect(c.uploadDelayMs(1000), 500);
       expect(c.downloadDelayMs(0), 0);
@@ -110,25 +113,30 @@ void main() {
       return dio;
     }
 
-    test('failRate 1.0 forces every request to fail before the network', () async {
-      FChaosStore.instance
-        ..random = _FixedRandom(0.0)
-        ..failStatus = 503
-        ..enabled = true
-        ..failRate = 1;
+    test(
+      'failRate 1.0 forces every request to fail before the network',
+      () async {
+        FChaosStore.instance
+          ..random = _FixedRandom(0.0)
+          ..failStatus = 503
+          ..enabled = true
+          ..failRate = 1;
 
-      await expectLater(
-        buildDio(_ThrowingAdapter()).get<dynamic>('/x'),
-        throwsA(isA<DioException>().having(
-          (DioException e) => e.response?.statusCode,
-          'statusCode',
-          503,
-        )),
-      );
-      final NetworkLog log = FNetworkStore.instance.logs.first;
-      expect(log.isChaos, isTrue);
-      expect(log.status, NetworkLogStatus.error);
-    });
+        await expectLater(
+          buildDio(_ThrowingAdapter()).get<dynamic>('/x'),
+          throwsA(
+            isA<DioException>().having(
+              (DioException e) => e.response?.statusCode,
+              'statusCode',
+              503,
+            ),
+          ),
+        );
+        final NetworkLog log = FNetworkStore.instance.logs.first;
+        expect(log.isChaos, isTrue);
+        expect(log.status, NetworkLogStatus.error);
+      },
+    );
 
     test('latency-only lets the request through', () async {
       FChaosStore.instance
@@ -137,8 +145,9 @@ void main() {
         ..latencyMs = 150;
 
       final Stopwatch sw = Stopwatch()..start();
-      final Response<dynamic> res =
-          await buildDio(_OkAdapter()).get<dynamic>('/x');
+      final Response<dynamic> res = await buildDio(
+        _OkAdapter(),
+      ).get<dynamic>('/x');
       sw.stop();
 
       expect(res.statusCode, 200);
@@ -146,52 +155,64 @@ void main() {
       expect(FNetworkStore.instance.logs.first.isChaos, isFalse);
     });
 
-    test('download bandwidth throttle delays proportionally to payload size', () async {
-      FChaosStore.instance
-        ..enabled = true
-        ..latencyMs = 0
-        ..downloadKbps = 8; // 1 byte/ms
+    test(
+      'download bandwidth throttle delays proportionally to payload size',
+      () async {
+        FChaosStore.instance
+          ..enabled = true
+          ..latencyMs = 0
+          ..downloadKbps = 8; // 1 byte/ms
 
-      final Stopwatch sw = Stopwatch()..start();
-      final Response<dynamic> res =
-          await buildDio(_BodyAdapter('x' * 200)).get<dynamic>('/x');
-      sw.stop();
+        final Stopwatch sw = Stopwatch()..start();
+        final Response<dynamic> res = await buildDio(
+          _BodyAdapter('x' * 200),
+        ).get<dynamic>('/x');
+        sw.stop();
 
-      expect(res.statusCode, 200);
-      expect(sw.elapsedMilliseconds, greaterThanOrEqualTo(150));
-    });
+        expect(res.statusCode, 200);
+        expect(sw.elapsedMilliseconds, greaterThanOrEqualTo(150));
+      },
+    );
 
-    test('offline profile rejects with a connection error before the network', () async {
-      FChaosStore.instance
-        ..enabled = true
-        ..applyProfile(FNetworkProfile.offline)
-        ..failRate = 0;
+    test(
+      'offline profile rejects with a connection error before the network',
+      () async {
+        FChaosStore.instance
+          ..enabled = true
+          ..applyProfile(FNetworkProfile.offline)
+          ..failRate = 0;
 
-      await expectLater(
-        buildDio(_ThrowingAdapter()).get<dynamic>('/x'),
-        throwsA(isA<DioException>().having(
-          (DioException e) => e.type,
-          'type',
-          DioExceptionType.connectionError,
-        )),
-      );
-      final NetworkLog log = FNetworkStore.instance.logs.first;
-      expect(log.isChaos, isTrue);
-      expect(log.status, NetworkLogStatus.error);
-    });
+        await expectLater(
+          buildDio(_ThrowingAdapter()).get<dynamic>('/x'),
+          throwsA(
+            isA<DioException>().having(
+              (DioException e) => e.type,
+              'type',
+              DioExceptionType.connectionError,
+            ),
+          ),
+        );
+        final NetworkLog log = FNetworkStore.instance.logs.first;
+        expect(log.isChaos, isTrue);
+        expect(log.status, NetworkLogStatus.error);
+      },
+    );
 
     test('mock rules win over the offline profile', () async {
-      FMockStore.instance.add(FMockRule.create(
-        pathPattern: '/x',
-        statusCode: 200,
-        body: '{"ok":true}',
-      ));
+      FMockStore.instance.add(
+        FMockRule.create(
+          pathPattern: '/x',
+          statusCode: 200,
+          body: '{"ok":true}',
+        ),
+      );
       FChaosStore.instance
         ..enabled = true
         ..applyProfile(FNetworkProfile.offline);
 
-      final Response<dynamic> res =
-          await buildDio(_ThrowingAdapter()).get<dynamic>('/x');
+      final Response<dynamic> res = await buildDio(
+        _ThrowingAdapter(),
+      ).get<dynamic>('/x');
       expect(res.statusCode, 200);
     });
   });
@@ -213,8 +234,9 @@ void main() {
         }),
       );
 
-      final http.Response res =
-          await client.get(Uri.parse('https://example.com/x'));
+      final http.Response res = await client.get(
+        Uri.parse('https://example.com/x'),
+      );
 
       expect(innerCalled, isFalse);
       expect(res.statusCode, 500);
@@ -222,26 +244,30 @@ void main() {
       expect(FNetworkStore.instance.logs.first.isChaos, isTrue);
     });
 
-    test('download bandwidth throttle delays proportionally to payload size', () async {
-      FChaosStore.instance
-        ..enabled = true
-        ..latencyMs = 0
-        ..downloadKbps = 8; // 1 byte/ms
+    test(
+      'download bandwidth throttle delays proportionally to payload size',
+      () async {
+        FChaosStore.instance
+          ..enabled = true
+          ..latencyMs = 0
+          ..downloadKbps = 8; // 1 byte/ms
 
-      final FNetworkHttpInterceptor client = FNetworkHttpInterceptor(
-        inner: MockClient(
-          (http.Request _) async => http.Response('x' * 200, 200),
-        ),
-      );
+        final FNetworkHttpInterceptor client = FNetworkHttpInterceptor(
+          inner: MockClient(
+            (http.Request _) async => http.Response('x' * 200, 200),
+          ),
+        );
 
-      final Stopwatch sw = Stopwatch()..start();
-      final http.Response res =
-          await client.get(Uri.parse('https://example.com/x'));
-      sw.stop();
+        final Stopwatch sw = Stopwatch()..start();
+        final http.Response res = await client.get(
+          Uri.parse('https://example.com/x'),
+        );
+        sw.stop();
 
-      expect(res.statusCode, 200);
-      expect(sw.elapsedMilliseconds, greaterThanOrEqualTo(150));
-    });
+        expect(res.statusCode, 200);
+        expect(sw.elapsedMilliseconds, greaterThanOrEqualTo(150));
+      },
+    );
 
     test('offline profile throws without calling the inner client', () async {
       FChaosStore.instance

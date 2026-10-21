@@ -93,20 +93,25 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
                 const Text(
                   'Simulate a connection type instead of tuning raw ms — '
                   'sets latency and throttles bandwidth together.',
-                  style: TextStyle(color: _textMuted, fontSize: 11, height: 1.4),
+                  style: TextStyle(
+                    color: _textMuted,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: <FNetworkProfile>[
-                    FNetworkProfile.offline,
-                    FNetworkProfile.twoG,
-                    FNetworkProfile.edge,
-                    FNetworkProfile.threeG,
-                    FNetworkProfile.fourG,
-                    FNetworkProfile.fiveG,
-                  ].map(_profileChip).toList(),
+                  children:
+                      <FNetworkProfile>[
+                        FNetworkProfile.offline,
+                        FNetworkProfile.twoG,
+                        FNetworkProfile.edge,
+                        FNetworkProfile.threeG,
+                        FNetworkProfile.fourG,
+                        FNetworkProfile.fiveG,
+                      ].map(_profileChip).toList(),
                 ),
                 const SizedBox(height: 16),
                 const _Label('ADDED LATENCY'),
@@ -115,16 +120,16 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
                   children: <Widget>[
                     Expanded(
                       child: Slider(
-                        value: _chaos.latencyMs
-                            .toDouble()
-                            .clamp(0, 5000)
-                            .toDouble(),
+                        value:
+                            _chaos.latencyMs
+                                .toDouble()
+                                .clamp(0, 5000)
+                                .toDouble(),
                         max: 5000,
                         divisions: 50,
                         activeColor: _blue,
                         label: '${_chaos.latencyMs} ms',
-                        onChanged: (double v) =>
-                            _chaos.latencyMs = v.round(),
+                        onChanged: (double v) => _chaos.latencyMs = v.round(),
                       ),
                     ),
                     SizedBox(
@@ -148,16 +153,17 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
                   children: <Widget>[
                     Expanded(
                       child: Slider(
-                        value: _chaos.downloadKbps
-                            .toDouble()
-                            .clamp(0, 50000)
-                            .toDouble(),
+                        value:
+                            _chaos.downloadKbps
+                                .toDouble()
+                                .clamp(0, 50000)
+                                .toDouble(),
                         max: 50000,
                         divisions: 50,
                         activeColor: _blue,
                         label: _formatKbps(_chaos.downloadKbps),
-                        onChanged: (double v) =>
-                            _chaos.downloadKbps = v.round(),
+                        onChanged:
+                            (double v) => _chaos.downloadKbps = v.round(),
                       ),
                     ),
                     SizedBox(
@@ -181,16 +187,16 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
                   children: <Widget>[
                     Expanded(
                       child: Slider(
-                        value: _chaos.uploadKbps
-                            .toDouble()
-                            .clamp(0, 50000)
-                            .toDouble(),
+                        value:
+                            _chaos.uploadKbps
+                                .toDouble()
+                                .clamp(0, 50000)
+                                .toDouble(),
                         max: 50000,
                         divisions: 50,
                         activeColor: _blue,
                         label: _formatKbps(_chaos.uploadKbps),
-                        onChanged: (double v) =>
-                            _chaos.uploadKbps = v.round(),
+                        onChanged: (double v) => _chaos.uploadKbps = v.round(),
                       ),
                     ),
                     SizedBox(
@@ -249,38 +255,42 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: _statusPresets.map((int s) {
-                    final bool active = _chaos.failStatus == s;
-                    return GestureDetector(
-                      onTap: () => _chaos.failStatus = s,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: active
-                              ? _red.withValues(alpha: 0.15)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: active ? _red : _border,
-                            width: active ? 1.5 : 1,
+                  children:
+                      _statusPresets.map((int s) {
+                        final bool active = _chaos.failStatus == s;
+                        return GestureDetector(
+                          onTap: () => _chaos.failStatus = s,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  active
+                                      ? _red.withValues(alpha: 0.15)
+                                      : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: active ? _red : _border,
+                                width: active ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              '$s',
+                              style: TextStyle(
+                                color: active ? _red : _textMuted,
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                                fontWeight:
+                                    active
+                                        ? FontWeight.w700
+                                        : FontWeight.normal,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          '$s',
-                          style: TextStyle(
-                            color: active ? _red : _textMuted,
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                            fontWeight:
-                                active ? FontWeight.w700 : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                        );
+                      }).toList(),
                 ),
                 const SizedBox(height: 16),
                 const _Label('FAILURE CONTENT-TYPE'),
@@ -325,7 +335,11 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
                   'Offline profile fails every request with a connection '
                   'error before it leaves the device, ignoring the failure '
                   'rate below.',
-                  style: TextStyle(color: _textMuted, fontSize: 11, height: 1.5),
+                  style: TextStyle(
+                    color: _textMuted,
+                    fontSize: 11,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
@@ -341,22 +355,22 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
     final bool offline = _chaos.isOffline;
     final FNetworkProfilePreset? preset =
         FNetworkProfilePreset.byProfile[_chaos.profile];
-    final String text = !_chaos.enabled
-        ? 'Chaos is off.'
-        : offline
+    final String text =
+        !_chaos.enabled
+            ? 'Chaos is off.'
+            : offline
             ? 'Offline — every request fails with a connection error.'
             : <String>[
-                if (preset != null) preset.label,
-                if (_chaos.latencyMs > 0) '+${_chaos.latencyMs} ms',
-                if (_chaos.downloadKbps > 0)
-                  '↓${_formatKbps(_chaos.downloadKbps)}',
-                if (_chaos.uploadKbps > 0)
-                  '↑${_formatKbps(_chaos.uploadKbps)}',
-                if (pct > 0)
-                  '≈$pct% fail with ${_chaos.failStatus}'
-                else
-                  'no forced failures',
-              ].join('  ·  ');
+              if (preset != null) preset.label,
+              if (_chaos.latencyMs > 0) '+${_chaos.latencyMs} ms',
+              if (_chaos.downloadKbps > 0)
+                '↓${_formatKbps(_chaos.downloadKbps)}',
+              if (_chaos.uploadKbps > 0) '↑${_formatKbps(_chaos.uploadKbps)}',
+              if (pct > 0)
+                '≈$pct% fail with ${_chaos.failStatus}'
+              else
+                'no forced failures',
+            ].join('  ·  ');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -443,8 +457,10 @@ class _NetworkChaosScreenState extends State<NetworkChaosScreen> {
         filled: true,
         fillColor: _surface,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: _border),

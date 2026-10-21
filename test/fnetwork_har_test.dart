@@ -39,11 +39,14 @@ NetworkLog _log({
 
 void main() {
   test('produces a valid HAR 1.2 skeleton', () {
-    final Map<String, dynamic> har = jsonDecode(FNetworkHar.export(<NetworkLog>[]))
-        as Map<String, dynamic>;
+    final Map<String, dynamic> har =
+        jsonDecode(FNetworkHar.export(<NetworkLog>[])) as Map<String, dynamic>;
     final Map<String, dynamic> log = har['log'] as Map<String, dynamic>;
     expect(log['version'], '1.2');
-    expect((log['creator'] as Map<String, dynamic>)['name'], 'fnetwork_inspector');
+    expect(
+      (log['creator'] as Map<String, dynamic>)['name'],
+      'fnetwork_inspector',
+    );
     expect(log['comment'], contains('rons.my.id'));
     expect(log['entries'], isEmpty);
   });
@@ -65,7 +68,8 @@ void main() {
       ),
     ]);
     final List<dynamic> entries =
-        (jsonDecode(out) as Map<String, dynamic>)['log']['entries'] as List<dynamic>;
+        (jsonDecode(out) as Map<String, dynamic>)['log']['entries']
+            as List<dynamic>;
     expect(entries.length, 2);
     expect(entries.first['startedDateTime'], '2026-01-01T00:00:01.000Z');
   });
@@ -90,7 +94,8 @@ void main() {
     ]);
     final Map<String, dynamic> entry =
         ((jsonDecode(out) as Map<String, dynamic>)['log']['entries']
-            as List<dynamic>)[0] as Map<String, dynamic>;
+                as List<dynamic>)[0]
+            as Map<String, dynamic>;
 
     final Map<String, dynamic> req = entry['request'] as Map<String, dynamic>;
     expect(req['method'], 'POST');
@@ -121,7 +126,8 @@ void main() {
     ]);
     final Map<String, dynamic> entry =
         ((jsonDecode(out) as Map<String, dynamic>)['log']['entries']
-            as List<dynamic>)[0] as Map<String, dynamic>;
+                as List<dynamic>)[0]
+            as Map<String, dynamic>;
     expect((entry['response'] as Map<String, dynamic>)['status'], 0);
     expect(entry['_error'], 'Connection refused');
   });
