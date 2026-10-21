@@ -51,7 +51,7 @@ void main() {
             '{"type":"something.else","scenarios":[]}':
                 'Not a fnetwork_inspector',
             '{"version":2,"scenarios":[]}': 'Unsupported file version',
-            '{"hello":"world"}': 'No "rules" or "scenarios"',
+            '{"hello":"world"}': 'No "rules", "scenarios" or "groups"',
             '{"scenarios":[42]}': 'Malformed entry',
           }.entries) {
         expect(
@@ -66,6 +66,77 @@ void main() {
           reason: c.key,
         );
       }
+    });
+
+    test('groups nest their scenarios; the group name is not repeated', () {
+      final Map<String, dynamic> json =
+          jsonDecode(
+                _file(<FMockScenario>[
+                  _s('a', 'A', group: _release),
+                  _s('b', 'B', group: _release),
+                  _s('c', 'C', group: 'Other release'),
+                  _s('d', 'D'),
+                ]),
+              )
+              as Map<String, dynamic>;
+
+      final List<dynamic> groups = json['groups'] as List<dynamic>;
+      expect(
+        groups.map((dynamic g) => (g as Map<String, dynamic>)['name']),
+        <String>[_release, 'Other release'],
+      );
+      final Map<String, dynamic> first = groups.first as Map<String, dynamic>;
+      expect((first['scenarios'] as List<dynamic>).length, 2);
+      expect(
+        (first['scenarios'] as List<dynamic>).every(
+          (dynamic s) => !(s as Map<String, dynamic>).containsKey('group'),
+        ),
+        isTrue,
+      );
+      expect(
+        ((json['scenarios'] as List<dynamic>).single
+            as Map<String, dynamic>)['name'],
+        'D',
+      );
+    });
+
+    test('nested groups round trip, and the flat form still parses', () {
+      final FMockBundle b = FMockBundle.parse(
+        _file(<FMockScenario>[_s('a', 'A', group: _release), _s('d', 'D')]),
+      );
+      expect(b.scenarios!.map((FMockScenario s) => s.group), <String?>[
+        _release,
+        null,
+      ]);
+
+      final FMockBundle flat = FMockBundle.parse(
+        '{"scenarios":[{"id":"x","name":"X","group":"G","rules":[]}]}',
+      );
+      expect(flat.scenarios!.single.group, 'G');
+    });
+
+    test(
+      'a group name wins; a blank name means ungrouped; groups-only works',
+      () {
+        final FMockBundle b = FMockBundle.parse(
+          '{"groups":['
+          '{"name":"G","scenarios":[{"id":"a","name":"A","group":"ignored"}]},'
+          '{"name":"  ","scenarios":[{"id":"b","name":"B"}]},'
+          '{"name":"Empty"}'
+          ']}',
+        );
+        expect(b.rules, isNull);
+        expect(b.scenarios!.map((FMockScenario s) => s.group), <String?>[
+          'G',
+          null,
+        ]);
+      },
+    );
+
+    test('an empty scenario list is still a scenarios section', () {
+      final FMockBundle b = FMockBundle.parse(_file(<FMockScenario>[]));
+      expect(b.scenarios, isEmpty);
+      expect(b.scenarios, isNotNull);
     });
 
     test('exported files carry type, version and the credit', () {

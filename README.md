@@ -176,6 +176,27 @@ mockScenarios: [
   - **Replace** — swaps the sections present in the file (scenarios and/or rules) for the file's. Sections the file doesn't contain are untouched.
 - Invalid files are rejected with a readable reason and change nothing. Older exports and bare rule arrays still import.
 
+The format keeps each group once and nests its scenarios, so you never repeat the group name:
+
+```json
+{
+  "type": "fnetwork_inspector.mocks",
+  "version": 1,
+  "groups": [
+    {
+      "name": "Health Plan Enhancement v2.0",
+      "scenarios": [
+        { "id": "tab-badge-all", "name": "Tab Indicator badge: All", "rules": [ { "pathPattern": "/notifications/tab-badges", "method": "GET", "statusCode": 200, "body": "{...}" } ] },
+        { "id": "tab-badge-500", "name": "Tab Indicator badge: Error 500", "rules": [ ... ] }
+      ]
+    }
+  ],
+  "scenarios": [ { "id": "logged-out", "name": "Logged out", "rules": [ ... ] } ]
+}
+```
+
+`groups` holds the grouped scenarios and `scenarios` the ungrouped ones; both are optional, and a `rules` section (live rules) can sit alongside. A flat `scenarios` list where each entry has its own `"group"` is still accepted.
+
 Load a file from your app at startup, so nobody has to import it on every run:
 
 ```dart

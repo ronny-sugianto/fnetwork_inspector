@@ -61,20 +61,22 @@ class FMockBundle {
 
       final Object? rawRules = json['rules'];
       final Object? rawScenarios = json['scenarios'];
-      if (rawRules is! List && rawScenarios is! List) {
-        throw const FormatException('No "rules" or "scenarios" found');
+      final Object? rawGroups = json['groups'];
+      if (rawRules is! List && rawScenarios is! List && rawGroups is! List) {
+        throw const FormatException(
+          'No "rules", "scenarios" or "groups" found',
+        );
       }
       return FMockBundle(
         rules: rawRules is List ? _rules(rawRules) : null,
         scenarios:
-            rawScenarios is List
-                ? rawScenarios
-                    .map(
-                      (dynamic e) => FMockScenario.fromJson(
-                        (e as Map<dynamic, dynamic>).cast<String, dynamic>(),
-                      ),
-                    )
-                    .toList()
+            rawScenarios is List || rawGroups is List
+                ? <FMockScenario>[
+                  // Same order as the file: each group's scenarios, then the
+                  // loose ones (which may carry their own `group`).
+                  if (rawGroups is List) ..._groups(rawGroups),
+                  if (rawScenarios is List) ..._scenarios(rawScenarios, null),
+                ]
                 : null,
         enabled: json['enabled'] as bool?,
         activeScenarioId: json['activeScenarioId'] as String?,
@@ -83,6 +85,25 @@ class FMockBundle {
       throw FormatException('Malformed entry ($e)');
     }
   }
+
+  static List<FMockScenario> _scenarios(List<dynamic> raw, String? group) =>
+      raw.map((dynamic e) {
+        final FMockScenario scenario = FMockScenario.fromJson(
+          (e as Map<dynamic, dynamic>).cast<String, dynamic>(),
+        );
+        // A group's name wins over any `group` on the scenario itself.
+        return group == null ? scenario : scenario.copyWith(group: group);
+      }).toList();
+
+  /// `groups: [{name, scenarios: [...]}]`
+  static List<FMockScenario> _groups(List<dynamic> raw) => <FMockScenario>[
+    for (final dynamic g in raw)
+      ..._scenarios(
+        ((g as Map<dynamic, dynamic>)['scenarios'] as List<dynamic>?) ??
+            const <dynamic>[],
+        FMockScenario.cleanGroup(g['name'] as String?),
+      ),
+  ];
 
   static List<FMockRule> _rules(List<dynamic> raw) =>
       raw
@@ -117,9 +138,39 @@ class FMockBundle {
     if (activeScenarioId != null) 'activeScenarioId': activeScenarioId,
     if (rules != null)
       'rules': rules!.map((FMockRule r) => r.toJson()).toList(),
-    if (scenarios != null)
-      'scenarios': scenarios!.map((FMockScenario s) => s.toJson()).toList(),
+    if (scenarios != null) ..._scenariosJson(scenarios!),
   };
+
+  /// Scenarios of a group are nested under it (`groups`) instead of repeating
+  /// the group name on each one; ungrouped ones stay in `scenarios`.
+  static Map<String, dynamic> _scenariosJson(List<FMockScenario> all) {
+    final Map<String, List<FMockScenario>> grouped =
+        <String, List<FMockScenario>>{};
+    final List<FMockScenario> loose = <FMockScenario>[];
+    for (final FMockScenario s in all) {
+      if (s.group == null) {
+        loose.add(s);
+      } else {
+        grouped.putIfAbsent(s.group!, () => <FMockScenario>[]).add(s);
+      }
+    }
+    Map<String, dynamic> scenario(FMockScenario s) =>
+        s.toJson()..remove('group');
+    return <String, dynamic>{
+      if (grouped.isNotEmpty)
+        'groups': <Map<String, dynamic>>[
+          for (final MapEntry<String, List<FMockScenario>> e in grouped.entries)
+            <String, dynamic>{
+              'name': e.key,
+              'scenarios': e.value.map(scenario).toList(),
+            },
+        ],
+      // An empty `scenarios` still means "this file has a scenarios section"
+      // (so Replace can clear them) when there are no groups either.
+      if (loose.isNotEmpty || grouped.isEmpty)
+        'scenarios': loose.map(scenario).toList(),
+    };
+  }
 
   String toJsonString({String? credit}) =>
       const JsonEncoder.withIndent('  ').convert(toJson(credit: credit));

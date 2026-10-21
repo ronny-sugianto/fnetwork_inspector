@@ -1,0 +1,59 @@
+{
+  "type": "fnetwork_inspector.mocks",
+  "version": 1,
+  "groups": [
+    {
+      "name": "Demo release v1",
+      "scenarios": [
+        {
+          "id": "posts-empty",
+          "name": "Posts: empty list",
+          "rules": [
+            {
+              "id": "r1",
+              "pathPattern": "/posts",
+              "method": "GET",
+              "statusCode": 200,
+              "contentType": "application/json",
+              "body": "[]",
+              "delayMs": 200,
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "id": "posts-500",
+          "name": "Posts: server error",
+          "rules": [
+            {
+              "id": "r2",
+              "pathPattern": "/posts",
+              "method": "GET",
+              "statusCode": 500,
+              "contentType": "application/json",
+              "body": "{\"error\":\"boom\"}",
+              "delayMs": 0,
+              "enabled": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "todos-one",
+      "name": "Todos: one item",
+      "rules": [
+        {
+          "id": "r3",
+          "pathPattern": "/todos*",
+          "statusCode": 200,
+          "contentType": "application/json",
+          "body": "[{\"id\":1,\"title\":\"mocked todo\"}]",
+          "enabled": true
+        }
+      ]
+    }
+  ]
+}
