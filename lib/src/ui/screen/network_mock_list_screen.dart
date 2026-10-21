@@ -102,15 +102,17 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
       _snack('Add at least one rule first');
       return;
     }
-    final String? name = await promptText(
+    final ScenarioDetails? details = await promptScenarioDetails(
       context,
       title: 'Save as scenario',
-      hint: 'e.g. Server error',
-      initial: _store.activeScenario?.name ?? '',
+      nameHint: 'e.g. Server error',
+      initialName: _store.activeScenario?.name ?? '',
+      initialGroup: _store.activeScenario?.group,
+      groups: _store.scenarioGroups,
     );
-    if (name == null || name.trim().isEmpty) return;
-    _store.saveAsScenario(name.trim());
-    _snack('Scenario "${name.trim()}" saved');
+    if (details == null) return;
+    _store.saveAsScenario(details.name, group: details.group);
+    _snack('Scenario "${details.name}" saved');
   }
 
   Future<void> _exportJson() async {
@@ -858,7 +860,13 @@ class _MenuRow extends StatelessWidget {
       children: <Widget>[
         Icon(icon, size: 16, color: _textMuted),
         const SizedBox(width: 10),
-        Text(label, style: const TextStyle(color: _textPrimary, fontSize: 13)),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: _textPrimary, fontSize: 13),
+          ),
+        ),
       ],
     );
   }
@@ -919,8 +927,124 @@ Future<String?> promptText(
   );
 }
 
+/// Result of [promptScenarioDetails].
+typedef ScenarioDetails = ({String name, String? group});
+
+/// Asks for a scenario's name and (optional) group. Existing [groups] are
+/// offered as quick picks. Returns null on cancel.
+Future<ScenarioDetails?> promptScenarioDetails(
+  BuildContext context, {
+  required String title,
+  String initialName = '',
+  String? initialGroup,
+  List<String> groups = const <String>[],
+  String? nameHint,
+}) {
+  final TextEditingController name = TextEditingController(text: initialName);
+  final TextEditingController group = TextEditingController(
+    text: initialGroup ?? '',
+  );
+
+  InputDecoration deco(String label, String? hint) => InputDecoration(
+    labelText: label,
+    labelStyle: const TextStyle(color: _textMuted, fontSize: 12),
+    hintText: hint,
+    hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
+    isDense: true,
+    enabledBorder: const OutlineInputBorder(
+      borderSide: BorderSide(color: _border),
+    ),
+    focusedBorder: const OutlineInputBorder(
+      borderSide: BorderSide(color: _blue),
+    ),
+  );
+  const TextStyle fieldStyle = TextStyle(color: _textPrimary, fontSize: 13);
+
+  return showDialog<ScenarioDetails>(
+    context: context,
+    builder:
+        (BuildContext ctx) => AlertDialog(
+          backgroundColor: _surface,
+          title: Text(
+            title,
+            style: const TextStyle(color: _textPrimary, fontSize: 15),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                TextField(
+                  controller: name,
+                  autofocus: true,
+                  style: fieldStyle,
+                  decoration: deco('Name', nameHint),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: group,
+                  style: fieldStyle,
+                  decoration: deco(
+                    'Group (optional)',
+                    'e.g. Health Plan Enhancement v2.0',
+                  ),
+                ),
+                if (groups.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: <Widget>[
+                      for (final String g in groups)
+                        GestureDetector(
+                          onTap: () => group.text = g,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: _border),
+                            ),
+                            child: Text(
+                              g,
+                              style: const TextStyle(
+                                color: _textMuted,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: _textMuted)),
+            ),
+            TextButton(
+              onPressed: () {
+                final String n = name.text.trim();
+                if (n.isEmpty) return;
+                Navigator.of(
+                  ctx,
+                ).pop((name: n, group: FMockScenario.cleanGroup(group.text)));
+              },
+              child: const Text('Save', style: TextStyle(color: _blue)),
+            ),
+          ],
+        ),
+  );
+}
+
 /// Lists saved [FMockScenario]s: tap to apply, per-row menu to rename / share /
 /// delete, and a button to snapshot the current rules as a new scenario.
+/// Scenarios are listed under one collapsible header per [FMockScenario.group].
 class MockScenarioListScreen extends StatefulWidget {
   const MockScenarioListScreen({super.key});
 
@@ -946,24 +1070,121 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
       _snack('Add at least one rule first');
       return;
     }
-    final String? name = await promptText(
+    final ScenarioDetails? details = await promptScenarioDetails(
       context,
       title: 'Save as scenario',
-      hint: 'e.g. Empty list',
+      nameHint: 'e.g. Empty list',
+      initialGroup: _store.activeScenario?.group,
+      groups: _store.scenarioGroups,
     );
-    if (name == null || name.trim().isEmpty) return;
-    _store.saveAsScenario(name.trim());
-    _snack('Scenario "${name.trim()}" saved');
+    if (details == null) return;
+    _store.saveAsScenario(details.name, group: details.group);
+    _snack('Scenario "${details.name}" saved');
   }
 
-  Future<void> _rename(FMockScenario s) async {
-    final String? name = await promptText(
+  Future<void> _edit(FMockScenario s) async {
+    final ScenarioDetails? details = await promptScenarioDetails(
       context,
-      title: 'Rename scenario',
-      initial: s.name,
+      title: 'Edit scenario',
+      initialName: s.name,
+      initialGroup: s.group,
+      groups: _store.scenarioGroups,
     );
-    if (name == null || name.trim().isEmpty) return;
-    _store.renameScenario(s.id, name.trim());
+    if (details == null) return;
+    if (details.name != s.name) _store.renameScenario(s.id, details.name);
+    _store.setScenarioGroup(s.id, details.group);
+  }
+
+  // Groups the user collapsed (in memory only).
+  final Set<String> _collapsed = <String>{};
+
+  Widget _buildList(List<FMockScenario> list) {
+    final List<String> groups = _store.scenarioGroups;
+    // No groups at all: the plain list, exactly as before.
+    if (groups.isEmpty) {
+      return ListView.separated(
+        itemCount: list.length,
+        separatorBuilder: (_, _) => Container(height: 1, color: _border),
+        itemBuilder: (BuildContext context, int i) => _buildTile(list[i]),
+      );
+    }
+
+    final List<Widget> children = <Widget>[];
+    void section(String key, String title, List<FMockScenario> items) {
+      if (items.isEmpty) return;
+      final bool collapsed = _collapsed.contains(key);
+      children.add(
+        _groupHeader(
+          title,
+          items.length,
+          collapsed,
+          () => setState(() {
+            if (!_collapsed.remove(key)) _collapsed.add(key);
+          }),
+        ),
+      );
+      if (collapsed) return;
+      for (final FMockScenario s in items) {
+        children.add(_buildTile(s));
+        children.add(Container(height: 1, color: _border));
+      }
+    }
+
+    for (final String g in groups) {
+      section(
+        'group:$g',
+        g,
+        list.where((FMockScenario s) => s.group == g).toList(),
+      );
+    }
+    section(
+      'other',
+      'Other scenarios',
+      list.where((FMockScenario s) => s.group == null).toList(),
+    );
+    return ListView(children: children);
+  }
+
+  Widget _groupHeader(
+    String title,
+    int count,
+    bool collapsed,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: _surface,
+        padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              collapsed ? Icons.chevron_right : Icons.expand_more,
+              size: 18,
+              color: _textMuted,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$count',
+              style: const TextStyle(color: _textMuted, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _share(FMockScenario s) async {
@@ -1067,13 +1288,7 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                         ),
                       ),
                     )
-                    : ListView.separated(
-                      itemCount: list.length,
-                      separatorBuilder:
-                          (_, _) => Container(height: 1, color: _border),
-                      itemBuilder:
-                          (BuildContext context, int i) => _buildTile(list[i]),
-                    ),
+                    : _buildList(list),
             bottomNavigationBar: const FNetworkCreditFooter(),
           );
         },
@@ -1154,8 +1369,8 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                   case 'apply':
                     _store.applyScenario(s.id);
                     _snack('Applied "${s.name}"');
-                  case 'rename':
-                    _rename(s);
+                  case 'edit':
+                    _edit(s);
                   case 'share':
                     _share(s);
                   case 'delete':
@@ -1169,8 +1384,8 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                       child: _MenuRow(Icons.play_arrow, 'Apply'),
                     ),
                     const PopupMenuItem<String>(
-                      value: 'rename',
-                      child: _MenuRow(Icons.edit_outlined, 'Rename'),
+                      value: 'edit',
+                      child: _MenuRow(Icons.edit_outlined, 'Edit…'),
                     ),
                     const PopupMenuItem<String>(
                       value: 'share',

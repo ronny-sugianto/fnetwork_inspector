@@ -92,20 +92,33 @@ class FMockStore with ChangeNotifier {
     _changed();
   }
 
-  /// Snapshots the current rules into a scenario. If one with [name] exists it
-  /// is overwritten. The new/updated scenario becomes the active one.
-  FMockScenario saveAsScenario(String name) {
+  /// Distinct scenario groups, in the order they first appear. Ungrouped
+  /// scenarios are not included.
+  List<String> get scenarioGroups {
+    final List<String> groups = <String>[];
+    for (final FMockScenario s in _scenarios) {
+      final String? g = s.group;
+      if (g != null && !groups.contains(g)) groups.add(g);
+    }
+    return groups;
+  }
+
+  /// Snapshots the current rules into a scenario, optionally under [group]. If
+  /// one with the same [name] **and group** exists it is overwritten. The
+  /// new/updated scenario becomes the active one.
+  FMockScenario saveAsScenario(String name, {String? group}) {
+    final String? g = FMockScenario.cleanGroup(group);
     final List<FMockRule> snapshot =
         _rules.map((FMockRule r) => r.copyWith()).toList();
     final int existing = _scenarios.indexWhere(
-      (FMockScenario s) => s.name == name,
+      (FMockScenario s) => s.name == name && s.group == g,
     );
     final FMockScenario scenario;
     if (existing >= 0) {
       scenario = _scenarios[existing].copyWith(rules: snapshot);
       _scenarios[existing] = scenario;
     } else {
-      scenario = FMockScenario.create(name: name, rules: snapshot);
+      scenario = FMockScenario.create(name: name, rules: snapshot, group: g);
       _scenarios.add(scenario);
     }
     _activeScenarioId = scenario.id;
@@ -128,6 +141,14 @@ class FMockStore with ChangeNotifier {
     final int i = _scenarios.indexWhere((FMockScenario s) => s.id == id);
     if (i == -1) return;
     _scenarios[i] = _scenarios[i].copyWith(name: name);
+    _changed();
+  }
+
+  /// Moves a scenario into [group], or out of any group when it is null/blank.
+  void setScenarioGroup(String id, String? group) {
+    final int i = _scenarios.indexWhere((FMockScenario s) => s.id == id);
+    if (i == -1) return;
+    _scenarios[i] = _scenarios[i].copyWith(group: group);
     _changed();
   }
 

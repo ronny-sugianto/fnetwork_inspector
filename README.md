@@ -153,6 +153,21 @@ Navigator.of(context).push(
 
 **Scenarios.** On the Mocks screen, ⋮ → *Save as scenario…* snapshots the current rules under a name. ⋮ → *Scenarios* lists them — tap to apply (swaps the whole rule set), or rename / delete / share as JSON. ⋮ → *Export (JSON)* / *Import (JSON)* moves rules + scenarios between devices or into version control. Seed at startup with `initialize(mockScenarios: [...])`.
 
+**Groups.** Organise scenarios under a header — e.g. one group per feature or release. Give a scenario a `group` (the *Save as scenario* and *Edit…* dialogs have a *Group* field with quick-pick chips for existing groups); the Scenarios screen then lists them under collapsible headers, with ungrouped ones under **Other scenarios**. Groups are only for organising: applying a scenario still replaces the rule set with that one scenario's rules.
+
+```dart
+mockScenarios: [
+  FMockScenario(
+    id: 'health-profile',            // a fixed id lets you applyScenario('health-profile')
+    name: 'Health Profile',
+    group: 'Health Plan Enhancement v2.0',
+    rules: [FMockRule.create(pathPattern: '/profile', body: '{...}')],
+  ),
+  FMockScenario(id: 'met-u', name: 'Met-U', group: 'Health Plan Enhancement v2.0', rules: [...]),
+  FMockScenario(id: 'logged-out', name: 'Logged out', rules: [...]),   // → "Other scenarios"
+],
+```
+
 **Persistence.** Rules and scenarios are in memory by default. Pass an `FMockPersistence` delegate to keep them across restarts (the package ships none — back it with `shared_preferences`, a file, Hive, …):
 
 ```dart

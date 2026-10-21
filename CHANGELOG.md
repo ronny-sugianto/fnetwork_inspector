@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Scenario groups.** `FMockScenario` has a new optional `group`; the Scenarios screen lists scenarios under one collapsible header per group (e.g. a feature or release such as "Health Plan Enhancement v2.0"), with ungrouped ones under "Other scenarios". The *Save as scenario* dialog gets a *Group* field with quick-pick chips for existing groups, and the row menu's *Rename* becomes *Edit…* (name + group). `FMockStore.saveAsScenario(name, group:)` (same name in different groups are separate scenarios), `setScenarioGroup()` and `scenarioGroups`; the group is included in JSON export/import and persistence. Grouping is organisational only.
+
 ## 0.5.1
 
 - Code formatted with `dart format` (the whole package, including tests and the example). No functional changes. Also re-triggers pub.dev's analysis of the 0.5 line.
