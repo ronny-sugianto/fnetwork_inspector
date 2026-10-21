@@ -31,7 +31,7 @@ Future<XFile?> _pickMockFile() => openFile(
   ],
 );
 
-/// File name for [base]: `Health Profile` → `health-profile.fnmock.json`.
+/// File name for [base]: `Order Summary` → `order-summary.fnmock.json`.
 String mockFileName(String base) {
   final String slug = base
       .toLowerCase()

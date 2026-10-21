@@ -6,7 +6,7 @@ import 'package:fnetwork_inspector/src/ui/mock_file_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const String _release = 'Health Plan Enhancement v2.0';
+const String _release = 'Checkout Revamp v2.0';
 
 FMockScenario _s(String id, String name, {String? group, String path = '/x'}) =>
     FMockScenario(
@@ -155,8 +155,8 @@ void main() {
         final FMockStore s = FMockStore.instance;
         s.addScenarios(<FMockScenario>[
           _s('keep', 'Keep me'),
-          _s('p', 'Health Profile', group: _release, path: '/old'),
-          _s('q', 'Met-U', group: _release),
+          _s('p', 'Order Summary', group: _release, path: '/old'),
+          _s('q', 'Wishlist', group: _release),
         ]);
         s.add(FMockRule.create(pathPattern: '/live'));
 
@@ -164,13 +164,13 @@ void main() {
           _file(<FMockScenario>[
             _s(
               'p',
-              'Health Profile renamed',
+              'Order Summary renamed',
               group: _release,
               path: '/new',
             ), // same id
             _s(
               'zzz',
-              'Met-U',
+              'Wishlist',
               group: _release,
               path: '/metu2',
             ), // same name+group
@@ -195,7 +195,7 @@ void main() {
           '/new',
         );
         expect(
-          s.scenarios.firstWhere((FMockScenario e) => e.name == 'Met-U').id,
+          s.scenarios.firstWhere((FMockScenario e) => e.name == 'Wishlist').id,
           'zzz',
           reason: 'the file\'s id wins so applyScenario(id) works afterwards',
         );
@@ -341,11 +341,8 @@ void main() {
 
   group('file names', () {
     test('are slugged and end in .fnmock.json', () {
-      expect(mockFileName('Health Profile'), 'health-profile.fnmock.json');
-      expect(
-        mockFileName(_release),
-        'health-plan-enhancement-v2-0.fnmock.json',
-      );
+      expect(mockFileName('Order Summary'), 'order-summary.fnmock.json');
+      expect(mockFileName(_release), 'checkout-revamp-v2-0.fnmock.json');
       expect(mockFileName('  !!  '), 'mocks.fnmock.json');
     });
   });
@@ -375,18 +372,18 @@ void main() {
           () async => XFile.fromData(
             utf8.encode(
               _file(<FMockScenario>[
-                _s('a', 'Health Profile', group: _release),
-                _s('b', 'Met-U', group: _release),
+                _s('a', 'Order Summary', group: _release),
+                _s('b', 'Wishlist', group: _release),
               ]),
             ),
-            name: 'health-plan.fnmock.json',
+            name: 'checkout-revamp.fnmock.json',
           );
       await pumpScenarios(tester);
       await openImportFile(tester);
 
       expect(find.text('Import mocks'), findsOneWidget);
       expect(find.textContaining('Contains 2 scenarios'), findsOneWidget);
-      expect(find.textContaining('$_release › Met-U'), findsOneWidget);
+      expect(find.textContaining('$_release › Wishlist'), findsOneWidget);
       expect(
         find.textContaining('Replace removes all 1 current scenarios'),
         findsOneWidget,

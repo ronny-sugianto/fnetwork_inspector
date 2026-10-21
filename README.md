@@ -151,29 +151,35 @@ Navigator.of(context).push(
 );
 ```
 
-**Scenarios.** A scenario is a named set of rules you can switch to in one tap. They have their own screen — the layers icon in the inspector app bar (a blue dot shows while one is active), separate from the Mocks screen, which only shows the live rules.
+#### Scenarios
+
+A scenario is a named set of rules you can switch to in one tap. They have their own screen — the layers icon in the inspector app bar (a blue dot shows while one is active), separate from the Mocks screen, which only shows the live rules.
 
 - **+** creates a new scenario (name + optional group); tap a scenario to open it and **add, edit, enable/disable or delete its rules** directly, without touching the live rules. While a scenario is applied, edits you make inside it update the live rules too.
 - The ▶ button on a row (or **Apply** inside the scenario) copies its rules into the live set; the banner shows which one is active, with **Detach**.
 - A row's ⋮ has *Rename / group…*, *Duplicate*, *Export* and *Delete*. App bar ⋮ → *Save live rules as scenario…* snapshots whatever is live right now (saving under the same name + group overwrites it).
 - Seed at startup with `initialize(mockScenarios: [...])` or `initialize(mockJson: ...)` (see below).
 
-**Groups.** Organise scenarios under a header — e.g. one group per feature or release. Give a scenario a `group` (the *New scenario*, *Save live rules…* and *Rename / group…* dialogs have a *Group* field with quick-pick chips for existing groups; a group header's ⋯ → *New scenario in group* pre-fills it); the Scenarios screen then lists them under collapsible headers, with ungrouped ones under **Other scenarios**. Groups are only for organising: applying a scenario still replaces the rule set with that one scenario's rules.
+#### Groups
+
+Organise scenarios under a header — e.g. one group per feature or release. Give a scenario a `group` (the *New scenario*, *Save live rules…* and *Rename / group…* dialogs have a *Group* field with quick-pick chips for existing groups; a group header's ⋯ → *New scenario in group* pre-fills it); the Scenarios screen then lists them under collapsible headers, with ungrouped ones under **Other scenarios**. Groups are only for organising: applying a scenario still replaces the rule set with that one scenario's rules.
 
 ```dart
 mockScenarios: [
   FMockScenario(
-    id: 'health-profile',            // a fixed id lets you applyScenario('health-profile')
-    name: 'Health Profile',
-    group: 'Health Plan Enhancement v2.0',
-    rules: [FMockRule.create(pathPattern: '/profile', body: '{...}')],
+    id: 'order-summary',            // a fixed id lets you applyScenario('order-summary')
+    name: 'Order Summary',
+    group: 'Checkout Revamp v2.0',
+    rules: [FMockRule.create(pathPattern: '/orders/summary', body: '{...}')],
   ),
-  FMockScenario(id: 'met-u', name: 'Met-U', group: 'Health Plan Enhancement v2.0', rules: [...]),
+  FMockScenario(id: 'wishlist', name: 'Wishlist', group: 'Checkout Revamp v2.0', rules: [...]),
   FMockScenario(id: 'logged-out', name: 'Logged out', rules: [...]),   // → "Other scenarios"
 ],
 ```
 
-**Mock files (`.fnmock.json`).** Scenarios can be moved around as a dedicated file, so testers can share them over chat/email and you can keep them in version control.
+#### Mock files (`.fnmock.json`)
+
+Scenarios can be moved around as a dedicated file, so testers can share them over chat/email and you can keep them in version control.
 
 - **Export** — Scenarios screen: a row's ⋮ → *Export (.fnmock.json)* (one scenario), a group header's ⋯ → *Export group* (one release/feature), or the app bar's ⋮ → *Export all scenarios*. ⋮ → *Export everything (+ live rules)* also includes the live rules and the on/off flags. The file is shared through the system share sheet (copied to the clipboard where sharing isn't available).
 - **Import** — app bar ⋮ → *Import from file…* opens the system file picker (⋮ → *Import from text…* takes pasted JSON). A dialog first shows what the file contains, then you choose:
@@ -189,10 +195,10 @@ The format keeps each group once and nests its scenarios, so you never repeat th
   "version": 1,
   "groups": [
     {
-      "name": "Health Plan Enhancement v2.0",
+      "name": "Checkout Revamp v2.0",
       "scenarios": [
-        { "id": "tab-badge-all", "name": "Tab Indicator badge: All", "rules": [ { "pathPattern": "/notifications/tab-badges", "method": "GET", "statusCode": 200, "body": "{...}" } ] },
-        { "id": "tab-badge-500", "name": "Tab Indicator badge: Error 500", "rules": [ ... ] }
+        { "id": "cart-badge-all", "name": "Cart badge: All", "rules": [ { "pathPattern": "/cart/badges", "method": "GET", "statusCode": 200, "body": "{...}" } ] },
+        { "id": "cart-badge-500", "name": "Cart badge: Error 500", "rules": [ ... ] }
       ]
     }
   ],
@@ -202,20 +208,30 @@ The format keeps each group once and nests its scenarios, so you never repeat th
 
 `groups` holds the grouped scenarios and `scenarios` the ungrouped ones; both are optional, and a `rules` section (live rules) can sit alongside. A flat `scenarios` list where each entry has its own `"group"` is still accepted.
 
+#### Load mocks at startup
+
 Load a file from your app at startup, so nobody has to import it on every run:
 
 ```dart
 await FNetworkInspector.initialize(
   mockJson: await rootBundle.loadString('assets/mocks.fnmock.json'),
-  activeMockScenario: 'health-profile',   // optional: apply this one at launch
+  activeMockScenario: 'order-summary',   // optional: apply this one at launch
 );
 ```
 
-`mockScenarios` and `mockJson` are **upserted on every launch** (matched by id, else name + group), so your code/asset stays the source of truth for the scenarios it defines, while scenarios testers created in the UI are left alone. Seeding happens once, when the app starts: a tester's edits to a seeded scenario are kept for as long as the app keeps running, and are reset to your version the next time it is launched from scratch (closed or killed, then reopened) — even if you use `mockPersistence`. Scenarios the tester created themselves survive. `activeMockScenario` is skipped when `mockPersistence` restored a previous session — the tester's last state wins. A bad `mockJson` is reported with `debugPrint` and ignored; it never crashes startup.
+How the startup values behave:
+
+- **`mockScenarios` and `mockJson`** are upserted on every launch (matched by id, else name + group), so your code/asset stays the source of truth for the scenarios it defines. Scenarios testers created in the UI are left alone.
+- **Tester edits** to a seeded scenario are kept for as long as the app keeps running, and reset to your version the next time it is launched from scratch (closed or killed, then reopened) — even if you use `mockPersistence`.
+- **`mockRules`** only seed an empty store.
+- **`activeMockScenario`** is skipped when `mockPersistence` restored a previous session — the tester's last state wins.
+- **A bad `mockJson`** is reported with `debugPrint` and ignored; it never crashes startup.
 
 > **macOS:** the file picker needs `com.apple.security.files.user-selected.read-only` in your entitlements when the app is sandboxed.
 
-**Persistence.** Rules and scenarios are in memory by default. Pass an `FMockPersistence` delegate to keep them across restarts (the package ships none — back it with `shared_preferences`, a file, Hive, …):
+#### Persistence
+
+Rules and scenarios are in memory by default. Pass an `FMockPersistence` delegate to keep them across restarts (the package ships none — back it with `shared_preferences`, a file, Hive, …):
 
 ```dart
 class PrefsMockStore implements FMockPersistence {

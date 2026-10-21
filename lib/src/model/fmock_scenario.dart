@@ -6,7 +6,7 @@ import 'package:uuid/uuid.dart';
 /// mock configuration at once (e.g. "logged out", "empty list", "server 500").
 ///
 /// Scenarios can be organised under a [group] (e.g. a feature or release such
-/// as "Health Plan Enhancement v2.0"); the Scenarios screen lists them under
+/// as "Checkout Revamp v2.0"); the Scenarios screen lists them under
 /// one header per group. Scenarios without a group appear under "Other".
 @immutable
 class FMockScenario {

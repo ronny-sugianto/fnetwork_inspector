@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 /// `type` value written into (and checked on) fnetwork_inspector mock files.
 const String kFMockFileType = 'fnetwork_inspector.mocks';
 
-/// Recommended extension for mock files, e.g. `health-plan.fnmock.json`. They
+/// Recommended extension for mock files, e.g. `checkout-revamp.fnmock.json`. They
 /// are plain JSON, so they can be edited by hand and committed to a repo.
 const String kFMockFileExtension = '.fnmock.json';
 

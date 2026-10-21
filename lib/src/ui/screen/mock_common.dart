@@ -323,7 +323,7 @@ Future<ScenarioDetails?> promptScenarioDetails(
                   style: fieldStyle,
                   decoration: deco(
                     'Group (optional)',
-                    'e.g. Health Plan Enhancement v2.0',
+                    'e.g. Checkout Revamp v2.0',
                   ),
                 ),
                 if (groups.isNotEmpty) ...<Widget>[

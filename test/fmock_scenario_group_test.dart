@@ -9,7 +9,7 @@ FMockScenario _s(String name, {String? group, String id = ''}) => FMockScenario(
   rules: <FMockRule>[FMockRule.create(pathPattern: '/$name')],
 );
 
-const String _release = 'Health Plan Enhancement v2.0';
+const String _release = 'Checkout Revamp v2.0';
 
 void main() {
   setUp(() => FMockStore.instance.reset());
@@ -47,14 +47,14 @@ void main() {
     test('same name in different groups are different scenarios', () {
       final FMockStore s = FMockStore.instance;
       s.add(FMockRule.create(pathPattern: '/x'));
-      s.saveAsScenario('Health Profile', group: _release);
-      s.saveAsScenario('Health Profile', group: 'Other release');
-      s.saveAsScenario('Health Profile'); // ungrouped
+      s.saveAsScenario('Order Summary', group: _release);
+      s.saveAsScenario('Order Summary', group: 'Other release');
+      s.saveAsScenario('Order Summary'); // ungrouped
       expect(s.scenarios.length, 3);
 
       // Same name AND group overwrites.
       s.add(FMockRule.create(pathPattern: '/y'));
-      s.saveAsScenario('Health Profile', group: _release);
+      s.saveAsScenario('Order Summary', group: _release);
       expect(s.scenarios.length, 3);
       expect(s.scenarios.first.rules.length, 2);
     });
@@ -99,10 +99,10 @@ void main() {
       WidgetTester tester,
     ) async {
       FMockStore.instance.addScenarios(<FMockScenario>[
-        _s('Tab Indicator badge', group: _release),
-        _s('Health Profile', group: _release),
-        _s('Health Score Result', group: _release),
-        _s('Met-U', group: _release),
+        _s('Cart badge', group: _release),
+        _s('Order Summary', group: _release),
+        _s('Payment Result', group: _release),
+        _s('Wishlist', group: _release),
         _s('Logged out'),
       ]);
       await pump(tester);
@@ -111,10 +111,10 @@ void main() {
       expect(find.text('Other scenarios'), findsOneWidget);
       expect(find.text('4'), findsOneWidget, reason: 'group count');
       for (final String n in <String>[
-        'Tab Indicator badge',
-        'Health Profile',
-        'Health Score Result',
-        'Met-U',
+        'Cart badge',
+        'Order Summary',
+        'Payment Result',
+        'Wishlist',
         'Logged out',
       ]) {
         expect(find.text(n), findsOneWidget, reason: n);
@@ -125,19 +125,19 @@ void main() {
       WidgetTester tester,
     ) async {
       FMockStore.instance.addScenarios(<FMockScenario>[
-        _s('Health Profile', group: _release),
+        _s('Order Summary', group: _release),
         _s('Logged out'),
       ]);
       await pump(tester);
 
       await tester.tap(find.text(_release));
       await tester.pump();
-      expect(find.text('Health Profile'), findsNothing);
+      expect(find.text('Order Summary'), findsNothing);
       expect(find.text('Logged out'), findsOneWidget);
 
       await tester.tap(find.text(_release));
       await tester.pump();
-      expect(find.text('Health Profile'), findsOneWidget);
+      expect(find.text('Order Summary'), findsOneWidget);
     });
 
     testWidgets('no groups: plain list, no "Other scenarios" header', (
@@ -152,7 +152,7 @@ void main() {
     testWidgets('Rename / group… moves a scenario into a new group', (
       WidgetTester tester,
     ) async {
-      FMockStore.instance.addScenarios(<FMockScenario>[_s('Met-U')]);
+      FMockStore.instance.addScenarios(<FMockScenario>[_s('Wishlist')]);
       await pump(tester);
 
       await tester.tap(find.byIcon(Icons.more_vert).first);

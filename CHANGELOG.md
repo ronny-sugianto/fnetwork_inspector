@@ -7,7 +7,7 @@
   - Tap a scenario to open it and **add, edit, enable/disable and delete its rules** in place, without touching the live rules. Editing the currently applied scenario keeps the live rules in step.
   - Tapping a row now opens it instead of applying it; apply with the ▶ button.
   - New `NetworkScenarioDetailScreen`; `FMockStore.createScenario()`, `duplicateScenario()`, `addScenarioRule()`, `updateScenarioRule()`, `removeScenarioRule()`, `toggleScenarioRule()`.
-- **Groups.** `FMockScenario` has a new optional `group` (e.g. a feature or release such as "Health Plan Enhancement v2.0"). The Scenarios screen lists them under collapsible headers, with ungrouped ones under "Other scenarios"; dialogs get a *Group* field with quick-pick chips, and a group header's ⋯ adds *New scenario in group*. `saveAsScenario(name, group:)` (the same name in different groups are separate scenarios), `setScenarioGroup()`, `scenarioGroups`. Organisational only.
+- **Groups.** `FMockScenario` has a new optional `group` (e.g. a feature or release such as "Checkout Revamp v2.0"). The Scenarios screen lists them under collapsible headers, with ungrouped ones under "Other scenarios"; dialogs get a *Group* field with quick-pick chips, and a group header's ⋯ adds *New scenario in group*. `saveAsScenario(name, group:)` (the same name in different groups are separate scenarios), `setScenarioGroup()`, `scenarioGroups`. Organisational only.
 
 **Mock files**
 
