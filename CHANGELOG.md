@@ -1,3 +1,8 @@
+## 0.5.3
+
+- Documentation: the mock section of the README is reorganised into Scenarios, Groups, Mock files, Load mocks at startup and Persistence, with the startup rules (`mockScenarios` / `mockJson` / `mockRules` / `activeMockScenario`) and what happens to a tester's edits laid out as a short list, plus refreshed examples.
+- The *Group* field hint in the scenario dialogs now reads "e.g. Checkout Revamp v2.0". No functional changes.
+
 ## 0.5.2
 
 **Scenarios**
