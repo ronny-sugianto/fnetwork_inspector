@@ -211,7 +211,7 @@ await FNetworkInspector.initialize(
 );
 ```
 
-`mockScenarios` and `mockJson` are **upserted on every launch** (matched by id, else name + group), so your code/asset stays the source of truth for the scenarios it defines, while scenarios testers created in the UI are left alone. `activeMockScenario` is skipped when `mockPersistence` restored a previous session — the tester's last state wins. A bad `mockJson` is reported with `debugPrint` and ignored; it never crashes startup.
+`mockScenarios` and `mockJson` are **upserted on every launch** (matched by id, else name + group), so your code/asset stays the source of truth for the scenarios it defines, while scenarios testers created in the UI are left alone. Seeding happens once, when the app starts: a tester's edits to a seeded scenario are kept for as long as the app keeps running, and are reset to your version the next time it is launched from scratch (closed or killed, then reopened) — even if you use `mockPersistence`. Scenarios the tester created themselves survive. `activeMockScenario` is skipped when `mockPersistence` restored a previous session — the tester's last state wins. A bad `mockJson` is reported with `debugPrint` and ignored; it never crashes startup.
 
 > **macOS:** the file picker needs `com.apple.security.files.user-selected.read-only` in your entitlements when the app is sandboxed.
 

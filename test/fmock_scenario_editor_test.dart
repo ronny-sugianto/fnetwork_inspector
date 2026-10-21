@@ -12,6 +12,16 @@ FMockScenario _s(
   List<FMockRule> rules = const <FMockRule>[],
 }) => FMockScenario(id: id, name: name, group: group, rules: rules);
 
+class _Mem implements FMockPersistence {
+  String? data;
+
+  @override
+  Future<String?> load() async => data;
+
+  @override
+  Future<void> save(String json) async => data = json;
+}
+
 void main() {
   setUp(() => FMockStore.instance.reset());
   tearDown(() => FMockStore.instance.reset());
@@ -108,6 +118,84 @@ void main() {
       expect(s.rules.map((FMockRule r) => r.id), <String>['r1']);
       expect(s.activeScenarioId, 'a');
     });
+  });
+
+  group('tester edits vs. scenarios seeded from code', () {
+    FMockScenario v(String path) =>
+        _s('a', 'A', group: 'G', rules: <FMockRule>[_r('r1', path)]);
+
+    test('edits are not overwritten while the app keeps running', () async {
+      await FNetworkInspector.initialize(
+        mockScenarios: <FMockScenario>[v('/v1')],
+      );
+
+      FMockStore.instance.updateScenarioRule('a', _r('r1', '/edited'));
+      FMockStore.instance.addScenarioRule('a', _r('r2', '/extra'));
+
+      // initialize() is a no-op once the app is running, so nothing re-seeds.
+      await FNetworkInspector.initialize(
+        mockScenarios: <FMockScenario>[v('/v2')],
+      );
+
+      final List<FMockRule> rules = FMockStore.instance.scenarios.single.rules;
+      expect(rules.map((FMockRule r) => r.pathPattern), <String>[
+        '/extra',
+        '/edited',
+      ]);
+    });
+
+    test('a fresh launch (app killed and reopened) goes back to the code', () {
+      final FMockStore s = FMockStore.instance;
+      s.seed(scenarios: <FMockScenario>[v('/v1')]);
+      s.updateScenarioRule('a', _r('r1', '/edited'));
+      s.createScenario('Mine'); // made by the tester
+
+      // New process: the in-memory store starts empty again.
+      s.reset();
+      s.seed(scenarios: <FMockScenario>[v('/v1')]);
+
+      expect(s.scenarios.single.rules.single.pathPattern, '/v1');
+    });
+
+    test(
+      'with persistence: edits are restored, then the code wins again',
+      () async {
+        final FMockStore s = FMockStore.instance;
+        s.seed(scenarios: <FMockScenario>[v('/v1')]);
+        s.updateScenarioRule('a', _r('r1', '/edited'));
+        s.createScenario('Mine');
+        final String saved = s.exportJson();
+
+        s.reset(); // process killed
+        final _Mem mem = _Mem()..data = saved;
+        await s.attachPersistence(mem);
+        expect(
+          s.scenarios
+              .firstWhere((FMockScenario e) => e.id == 'a')
+              .rules
+              .single
+              .pathPattern,
+          '/edited',
+          reason: 'restored from storage first',
+        );
+
+        s.seed(scenarios: <FMockScenario>[v('/v1')]); // then initialize() seeds
+        expect(
+          s.scenarios
+              .firstWhere((FMockScenario e) => e.id == 'a')
+              .rules
+              .single
+              .pathPattern,
+          '/v1',
+          reason: 'seeded scenario reset on launch',
+        );
+        expect(
+          s.scenarios.any((FMockScenario e) => e.name == 'Mine'),
+          isTrue,
+          reason: 'the tester\'s own scenarios are kept',
+        );
+      },
+    );
   });
 
   group('Scenarios screen', () {
