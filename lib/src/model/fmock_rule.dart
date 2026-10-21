@@ -108,6 +108,19 @@ class FMockRule {
 
   static const Object _sentinel = Object();
 
+  /// An identical rule with a fresh id, e.g. for duplicating a scenario.
+  FMockRule withNewId() => FMockRule(
+    id: const Uuid().v4(),
+    pathPattern: pathPattern,
+    method: method,
+    statusCode: statusCode,
+    contentType: contentType,
+    body: body,
+    isBase64: isBase64,
+    delayMs: delayMs,
+    enabled: enabled,
+  );
+
   /// The response body as bytes. Text bodies are UTF-8 encoded; base64 bodies
   /// are decoded (returns an empty list if the string is not valid base64).
   List<int> get bodyBytes {

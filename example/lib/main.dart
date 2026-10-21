@@ -99,6 +99,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: const Text('Open Mocks'),
             ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) =>
+                      const MockScenarioListScreen(),
+                ),
+              ),
+              child: const Text('Open Scenarios'),
+            ),
           ],
         ),
       ),

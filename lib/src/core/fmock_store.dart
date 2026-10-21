@@ -158,6 +158,91 @@ class FMockStore with ChangeNotifier {
     _changed();
   }
 
+  /// Creates a scenario — empty unless [rules] are given — without applying it.
+  /// A name already used in the same group gets a numeric suffix.
+  FMockScenario createScenario(
+    String name, {
+    String? group,
+    Iterable<FMockRule> rules = const <FMockRule>[],
+  }) {
+    final String? g = FMockScenario.cleanGroup(group);
+    final FMockScenario scenario = FMockScenario.create(
+      name: _uniqueScenarioName(name, g),
+      rules: rules.map((FMockRule r) => r.copyWith()).toList(),
+      group: g,
+    );
+    _scenarios.add(scenario);
+    _changed();
+    return scenario;
+  }
+
+  /// Copies a scenario (same group, new ids, `<name> copy`) right below it.
+  FMockScenario? duplicateScenario(String id) {
+    final int i = _scenarios.indexWhere((FMockScenario s) => s.id == id);
+    if (i == -1) return null;
+    final FMockScenario source = _scenarios[i];
+    final FMockScenario copy = FMockScenario.create(
+      name: _uniqueScenarioName('${source.name} copy', source.group),
+      rules: source.rules.map((FMockRule r) => r.withNewId()).toList(),
+      group: source.group,
+    );
+    _scenarios.insert(i + 1, copy);
+    _changed();
+    return copy;
+  }
+
+  String _uniqueScenarioName(String name, String? group) {
+    bool taken(String n) =>
+        _scenarios.any((FMockScenario s) => s.name == n && s.group == group);
+    if (!taken(name)) return name;
+    int n = 2;
+    while (taken('$name $n')) {
+      n++;
+    }
+    return '$name $n';
+  }
+
+  // The rule operations below edit a scenario in place. When it is the one
+  // currently applied, the live rules follow, so the two never disagree.
+
+  void addScenarioRule(String id, FMockRule rule) =>
+      _editScenarioRules(id, (List<FMockRule> l) => l..insert(0, rule));
+
+  void updateScenarioRule(String id, FMockRule rule) =>
+      _editScenarioRules(id, (List<FMockRule> l) {
+        final int i = l.indexWhere((FMockRule r) => r.id == rule.id);
+        if (i != -1) l[i] = rule;
+        return l;
+      });
+
+  void removeScenarioRule(String id, String ruleId) => _editScenarioRules(
+    id,
+    (List<FMockRule> l) => l..removeWhere((FMockRule r) => r.id == ruleId),
+  );
+
+  void toggleScenarioRule(String id, String ruleId) =>
+      _editScenarioRules(id, (List<FMockRule> l) {
+        final int i = l.indexWhere((FMockRule r) => r.id == ruleId);
+        if (i != -1) l[i] = l[i].copyWith(enabled: !l[i].enabled);
+        return l;
+      });
+
+  void _editScenarioRules(
+    String id,
+    List<FMockRule> Function(List<FMockRule>) edit,
+  ) {
+    final int i = _scenarios.indexWhere((FMockScenario s) => s.id == id);
+    if (i == -1) return;
+    final List<FMockRule> rules = edit(List<FMockRule>.of(_scenarios[i].rules));
+    _scenarios[i] = _scenarios[i].copyWith(rules: rules);
+    if (_activeScenarioId == id) {
+      _rules
+        ..clear()
+        ..addAll(rules.map((FMockRule r) => r.copyWith()));
+    }
+    _changed();
+  }
+
   /// Keeps the current rules but detaches them from the active scenario.
   void detachScenario() {
     if (_activeScenarioId == null) return;

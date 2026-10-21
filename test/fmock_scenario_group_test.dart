@@ -149,7 +149,7 @@ void main() {
       expect(find.text('a'), findsOneWidget);
     });
 
-    testWidgets('Edit… moves a scenario into a new group', (
+    testWidgets('Rename / group… moves a scenario into a new group', (
       WidgetTester tester,
     ) async {
       FMockStore.instance.addScenarios(<FMockScenario>[_s('Met-U')]);
@@ -157,7 +157,7 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.more_vert).first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit…'));
+      await tester.tap(find.text('Rename / group…'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).at(1), _release);

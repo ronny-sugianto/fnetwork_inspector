@@ -143,7 +143,7 @@ FNetworkInspector.mocks.add(
 FNetworkInspector.mocks.enabled = false;  // master off switch
 ```
 
-You can also open the **Mocks** screen (bolt icon in the inspector app bar) to add/edit/toggle rules, or hit **Mock this response** on any captured request to turn it into a rule. When a request already matches a rule, its detail screen shows a **MOCK** section to toggle, edit, or delete that rule without leaving the screen. Binary bodies: set `isBase64: true` and put a base64 string in `body`.
+You can also open the **Mocks** screen (bolt icon in the inspector app bar) to add/edit/toggle the live rules, or hit **Mock this response** on any captured request to turn it into a rule. When a request already matches a rule, its detail screen shows a **MOCK** section to toggle, edit, or delete that rule without leaving the screen. Binary bodies: set `isBase64: true` and put a base64 string in `body`.
 
 ```dart
 Navigator.of(context).push(
@@ -151,9 +151,14 @@ Navigator.of(context).push(
 );
 ```
 
-**Scenarios.** On the Mocks screen, ⋮ → *Save as scenario…* snapshots the current rules under a name. ⋮ → *Scenarios* lists them — tap to apply (swaps the whole rule set), or edit / delete / export. Seed at startup with `initialize(mockScenarios: [...])` or `initialize(mockJson: ...)` (see below).
+**Scenarios.** A scenario is a named set of rules you can switch to in one tap. They have their own screen — the layers icon in the inspector app bar (a blue dot shows while one is active), separate from the Mocks screen, which only shows the live rules.
 
-**Groups.** Organise scenarios under a header — e.g. one group per feature or release. Give a scenario a `group` (the *Save as scenario* and *Edit…* dialogs have a *Group* field with quick-pick chips for existing groups); the Scenarios screen then lists them under collapsible headers, with ungrouped ones under **Other scenarios**. Groups are only for organising: applying a scenario still replaces the rule set with that one scenario's rules.
+- **+** creates a new scenario (name + optional group); tap a scenario to open it and **add, edit, enable/disable or delete its rules** directly, without touching the live rules. While a scenario is applied, edits you make inside it update the live rules too.
+- The ▶ button on a row (or **Apply** inside the scenario) copies its rules into the live set; the banner shows which one is active, with **Detach**.
+- A row's ⋮ has *Rename / group…*, *Duplicate*, *Export* and *Delete*. App bar ⋮ → *Save live rules as scenario…* snapshots whatever is live right now (saving under the same name + group overwrites it).
+- Seed at startup with `initialize(mockScenarios: [...])` or `initialize(mockJson: ...)` (see below).
+
+**Groups.** Organise scenarios under a header — e.g. one group per feature or release. Give a scenario a `group` (the *New scenario*, *Save live rules…* and *Rename / group…* dialogs have a *Group* field with quick-pick chips for existing groups; a group header's ⋯ → *New scenario in group* pre-fills it); the Scenarios screen then lists them under collapsible headers, with ungrouped ones under **Other scenarios**. Groups are only for organising: applying a scenario still replaces the rule set with that one scenario's rules.
 
 ```dart
 mockScenarios: [
@@ -170,8 +175,8 @@ mockScenarios: [
 
 **Mock files (`.fnmock.json`).** Scenarios can be moved around as a dedicated file, so testers can share them over chat/email and you can keep them in version control.
 
-- **Export** — Scenarios screen: a row's ⋮ → *Export (.fnmock.json)* (one scenario), a group header's ⋯ → *Export group* (one release/feature), or the app bar's ⋮ → *Export all scenarios*. The Mocks screen's ⋮ → *Export all (.fnmock.json)* also includes the live rules and the on/off flags. The file is shared through the system share sheet (copied to the clipboard where sharing isn't available).
-- **Import** — ⋮ → *Import from file…* opens the system file picker (⋮ → *Import from text…* takes pasted JSON). A dialog first shows what the file contains, then you choose:
+- **Export** — Scenarios screen: a row's ⋮ → *Export (.fnmock.json)* (one scenario), a group header's ⋯ → *Export group* (one release/feature), or the app bar's ⋮ → *Export all scenarios*. ⋮ → *Export everything (+ live rules)* also includes the live rules and the on/off flags. The file is shared through the system share sheet (copied to the clipboard where sharing isn't available).
+- **Import** — app bar ⋮ → *Import from file…* opens the system file picker (⋮ → *Import from text…* takes pasted JSON). A dialog first shows what the file contains, then you choose:
   - **Merge** *(recommended)* — adds what's new and updates items that already exist (same id, or same name in the same group). Everything else is left alone, so importing the same file twice never duplicates anything.
   - **Replace** — swaps the sections present in the file (scenarios and/or rules) for the file's. Sections the file doesn't contain are untouched.
 - Invalid files are rejected with a readable reason and change nothing. Older exports and bare rule arrays still import.

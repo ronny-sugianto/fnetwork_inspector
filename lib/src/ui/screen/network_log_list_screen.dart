@@ -9,6 +9,7 @@ import 'package:fnetwork_inspector/src/model/network_log.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_chaos_screen.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_log_detail_screen.dart';
 import 'package:fnetwork_inspector/src/ui/screen/network_mock_list_screen.dart';
+import 'package:fnetwork_inspector/src/ui/screen/network_scenario_list_screen.dart';
 import 'package:fnetwork_inspector/src/ui/widget/fnetwork_credit_footer.dart';
 import 'package:fnetwork_inspector/src/ui/widget/ftester_guide_dialog.dart';
 import 'package:flutter/material.dart';
@@ -523,6 +524,39 @@ class _NetworkLogListScreenState extends State<NetworkLogListScreen> {
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
                             ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            AnimatedBuilder(
+              animation: FMockStore.instance,
+              builder: (BuildContext context, _) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    IconButton(
+                      icon: const Icon(Icons.layers_outlined, size: 20),
+                      tooltip: 'Scenarios',
+                      onPressed:
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const MockScenarioListScreen(),
+                            ),
+                          ),
+                    ),
+                    if (FMockStore.instance.activeScenarioId != null)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: _blue,
+                            shape: BoxShape.circle,
                           ),
                         ),
                       ),
