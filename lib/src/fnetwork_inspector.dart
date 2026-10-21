@@ -85,11 +85,22 @@ class FNetworkInspector {
   ///   show again" choice survives restarts. The package ships no
   ///   implementation — see [FInspectorStorage].
   /// - [mockRules]: optional list of [FMockRule]s to seed the mock registry
-  ///   with. Ignored when [enableInspection] is false, or when [mockPersistence]
-  ///   restored a non-empty set. More can be added at runtime via [mocks] or the
-  ///   Mocks screen in the inspector UI.
-  /// - [mockScenarios]: optional named [FMockScenario]s to seed. Same rules as
-  ///   [mockRules].
+  ///   with. Only used when the registry is empty (rule ids are random, so
+  ///   re-adding them on every launch would duplicate them), and ignored when
+  ///   [enableInspection] is false. More can be added at runtime via [mocks] or
+  ///   the Mocks screen in the inspector UI.
+  /// - [mockScenarios]: optional named [FMockScenario]s. Unlike [mockRules]
+  ///   they are **upserted on every launch** — matched by `id`, else by name in
+  ///   the same group — so your code stays the source of truth for the
+  ///   scenarios it defines, while scenarios testers made in the UI are left
+  ///   alone. Give them fixed ids.
+  /// - [mockJson]: the text of a `.fnmock.json` file (exported from the Mocks
+  ///   screen), typically `await rootBundle.loadString('assets/mocks.fnmock.json')`.
+  ///   Merged on every launch like [mockScenarios]. Invalid content is reported
+  ///   with `debugPrint` and skipped.
+  /// - [activeMockScenario]: id of a scenario to apply at startup. Ignored when
+  ///   [mockPersistence] restored a previous session (the tester's last state
+  ///   wins).
   /// - [mockPersistence]: optional storage delegate so mock rules and scenarios
   ///   survive app restarts. The package ships no implementation — see
   ///   [FMockPersistence].
@@ -104,6 +115,8 @@ class FNetworkInspector {
     FInspectorStorage? inspectorStorage,
     List<FMockRule>? mockRules,
     List<FMockScenario>? mockScenarios,
+    String? mockJson,
+    String? activeMockScenario,
     FMockPersistence? mockPersistence,
   }) async {
     if (_interceptor != null) return;
@@ -127,16 +140,12 @@ class FNetworkInspector {
       if (mockPersistence != null) {
         await FMockStore.instance.attachPersistence(mockPersistence);
       }
-      if (FMockStore.instance.rules.isEmpty &&
-          mockRules != null &&
-          mockRules.isNotEmpty) {
-        FMockStore.instance.addAll(mockRules);
-      }
-      if (FMockStore.instance.scenarios.isEmpty &&
-          mockScenarios != null &&
-          mockScenarios.isNotEmpty) {
-        FMockStore.instance.addScenarios(mockScenarios);
-      }
+      FMockStore.instance.seed(
+        rules: mockRules,
+        scenarios: mockScenarios,
+        json: mockJson,
+        activeScenarioId: activeMockScenario,
+      );
     }
 
     _interceptor = FNetworkDioInterceptor(

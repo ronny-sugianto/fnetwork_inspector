@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert';
-
 import 'package:fnetwork_inspector/src/core/fmock_persistence.dart';
 import 'package:fnetwork_inspector/src/core/fnetwork_meta.dart';
+import 'package:fnetwork_inspector/src/model/fmock_bundle.dart';
 import 'package:fnetwork_inspector/src/model/fmock_rule.dart';
 import 'package:fnetwork_inspector/src/model/fmock_scenario.dart';
 import 'package:flutter/foundation.dart';
@@ -33,6 +32,7 @@ class FMockStore with ChangeNotifier {
   String? _activeScenarioId;
 
   FMockPersistence? _persistence;
+  bool _restoredFromStorage = false;
   Timer? _saveTimer;
 
   UnmodifiableListView<FMockRule> get rules =>
@@ -175,6 +175,7 @@ class FMockStore with ChangeNotifier {
     if (data != null && data.trim().isNotEmpty) {
       try {
         importJson(data, notify: false);
+        _restoredFromStorage = true;
       } catch (_) {
         // ignore corrupt payloads
       }
@@ -193,73 +194,171 @@ class FMockStore with ChangeNotifier {
 
   // --- serialization ---------------------------------------------------------
 
-  /// The full store state as pretty JSON (rules + scenarios + flags).
-  String exportJson() {
-    return const JsonEncoder.withIndent('  ').convert(<String, dynamic>{
-      'version': 1,
-      '_credit': kFNetworkInspectorUrl,
-      'enabled': _enabled,
-      'activeScenarioId': _activeScenarioId,
-      'rules': _rules.map((FMockRule r) => r.toJson()).toList(),
-      'scenarios': _scenarios.map((FMockScenario s) => s.toJson()).toList(),
-    });
-  }
+  /// The full store state — live rules, scenarios and flags — as pretty JSON
+  /// (a `.fnmock.json` file).
+  String exportJson() => FMockBundle(
+    rules: _rules,
+    scenarios: _scenarios,
+    enabled: _enabled,
+    activeScenarioId: _activeScenarioId,
+  ).toJsonString(credit: kFNetworkInspectorUrl);
 
-  /// Loads state from [source] (output of [exportJson], or a bare JSON array of
-  /// rules). Replaces everything unless [merge] is true.
-  void importJson(String source, {bool notify = true, bool merge = false}) {
-    final Object? decoded = jsonDecode(source);
+  /// Just the given [scenarios] as a `.fnmock.json` file: importing it never
+  /// touches live rules or the master switch.
+  String exportScenariosJson(Iterable<FMockScenario> scenarios) => FMockBundle(
+    scenarios: scenarios.toList(),
+  ).toJsonString(credit: kFNetworkInspectorUrl);
 
-    List<FMockRule> parseRules(List<dynamic> raw) =>
-        raw
-            .map(
-              (dynamic e) => FMockRule.fromJson(
-                (e as Map<dynamic, dynamic>).cast<String, dynamic>(),
-              ),
-            )
-            .toList();
+  /// Scenarios in [group] (`null` = the ungrouped ones).
+  List<FMockScenario> scenariosInGroup(String? group) =>
+      _scenarios.where((FMockScenario s) => s.group == group).toList();
 
-    if (decoded is List) {
-      final List<FMockRule> rules = parseRules(decoded);
+  /// Loads a mock file ([exportJson] / [exportScenariosJson] output, a file from
+  /// an earlier version, or a bare JSON array of rules).
+  ///
+  /// With [merge] false (the default, and what persistence uses) every section
+  /// the file contains **replaces** the store's. With [merge] true, incoming
+  /// items are added and ones that already exist (same id, or same name in the
+  /// same group) are updated in place; nothing else is touched.
+  ///
+  /// Throws [FormatException] if [source] is not a valid mock file.
+  FMockImportSummary importJson(
+    String source, {
+    bool notify = true,
+    bool merge = false,
+  }) => importBundle(FMockBundle.parse(source), merge: merge, notify: notify);
+
+  /// Applies an already parsed [bundle]; see [importJson] for [merge].
+  FMockImportSummary importBundle(
+    FMockBundle bundle, {
+    bool merge = true,
+    bool notify = true,
+  }) {
+    int rulesAdded = 0;
+    int rulesUpdated = 0;
+    int scenariosAdded = 0;
+    int scenariosUpdated = 0;
+
+    final List<FMockRule>? rules = bundle.rules;
+    if (rules != null) {
       if (merge) {
-        _rules.insertAll(0, rules);
+        // Reversed so inserting at the front keeps the file's order.
+        for (final FMockRule r in rules.reversed) {
+          final int i = _rules.indexWhere((FMockRule e) => e.id == r.id);
+          if (i >= 0) {
+            _rules[i] = r;
+            rulesUpdated++;
+          } else {
+            _rules.insert(0, r);
+            rulesAdded++;
+          }
+        }
       } else {
         _rules
           ..clear()
           ..addAll(rules);
+        rulesAdded = rules.length;
       }
-      if (notify) _changed();
-      return;
     }
 
-    final Map<String, dynamic> json =
-        (decoded as Map<dynamic, dynamic>).cast<String, dynamic>();
-    final List<FMockRule> rules = parseRules(
-      (json['rules'] as List<dynamic>?) ?? const <dynamic>[],
-    );
-    final List<FMockScenario> scenarios =
-        ((json['scenarios'] as List<dynamic>?) ?? const <dynamic>[])
-            .map(
-              (dynamic e) => FMockScenario.fromJson(
-                (e as Map<dynamic, dynamic>).cast<String, dynamic>(),
-              ),
-            )
-            .toList();
-
-    if (merge) {
-      _rules.insertAll(0, rules);
-      _scenarios.addAll(scenarios);
-    } else {
-      _rules
-        ..clear()
-        ..addAll(rules);
-      _scenarios
-        ..clear()
-        ..addAll(scenarios);
-      _enabled = json['enabled'] as bool? ?? true;
-      _activeScenarioId = json['activeScenarioId'] as String?;
+    final List<FMockScenario>? scenarios = bundle.scenarios;
+    if (scenarios != null) {
+      if (merge) {
+        for (final FMockScenario s in scenarios) {
+          _upsertScenario(s) ? scenariosUpdated++ : scenariosAdded++;
+        }
+      } else {
+        _scenarios
+          ..clear()
+          ..addAll(scenarios);
+        scenariosAdded = scenarios.length;
+        if (_byId(_activeScenarioId) == null) _activeScenarioId = null;
+      }
     }
+
+    if (!merge) {
+      if (bundle.enabled != null) _enabled = bundle.enabled!;
+      if (bundle.activeScenarioId != null &&
+          _byId(bundle.activeScenarioId) != null) {
+        _activeScenarioId = bundle.activeScenarioId;
+      }
+    }
+
     if (notify) _changed();
+    return FMockImportSummary(
+      rulesAdded: rulesAdded,
+      rulesUpdated: rulesUpdated,
+      scenariosAdded: scenariosAdded,
+      scenariosUpdated: scenariosUpdated,
+    );
+  }
+
+  /// Replaces the scenario with the same id — or, failing that, the same name in
+  /// the same group — or appends it. Returns true if it replaced one.
+  bool _upsertScenario(FMockScenario s) {
+    int i = _scenarios.indexWhere((FMockScenario e) => e.id == s.id);
+    if (i < 0) {
+      i = _scenarios.indexWhere(
+        (FMockScenario e) => e.name == s.name && e.group == s.group,
+      );
+    }
+    if (i < 0) {
+      _scenarios.add(s);
+      return false;
+    }
+    final String oldId = _scenarios[i].id;
+    _scenarios[i] = s;
+    if (_activeScenarioId == oldId) _activeScenarioId = s.id;
+    return true;
+  }
+
+  /// Applies the app-supplied seeds from `FNetworkInspector.initialize`.
+  ///
+  /// * [rules] only seed an empty store (their ids are random, so re-adding
+  ///   them every launch would duplicate them).
+  /// * [scenarios] and [json] are upserted on every launch: the code is the
+  ///   source of truth for the scenarios it defines, while scenarios a tester
+  ///   created in the UI are left alone.
+  /// * [activeScenarioId] is applied unless a previous session was restored
+  ///   from persistence (the tester's last state wins).
+  ///
+  /// An unreadable [json] is reported with `debugPrint` and skipped rather than
+  /// stopping the app from starting.
+  void seed({
+    List<FMockRule>? rules,
+    List<FMockScenario>? scenarios,
+    String? json,
+    String? activeScenarioId,
+  }) {
+    if (rules != null && rules.isNotEmpty && _rules.isEmpty) {
+      _rules.addAll(rules);
+    }
+    if (scenarios != null) {
+      for (final FMockScenario s in scenarios) {
+        _upsertScenario(s);
+      }
+    }
+    if (json != null && json.trim().isNotEmpty) {
+      try {
+        importBundle(FMockBundle.parse(json), merge: true, notify: false);
+      } on FormatException catch (e) {
+        debugPrint('fnetwork_inspector: ignoring invalid mockJson: $e');
+      }
+    }
+    if (activeScenarioId != null && !_restoredFromStorage) {
+      if (_byId(activeScenarioId) != null) {
+        final FMockScenario s = _byId(activeScenarioId)!;
+        _rules
+          ..clear()
+          ..addAll(s.rules.map((FMockRule r) => r.copyWith()));
+        _activeScenarioId = activeScenarioId;
+      } else {
+        debugPrint(
+          'fnetwork_inspector: activeMockScenario "$activeScenarioId" not found',
+        );
+      }
+    }
+    _changed();
   }
 
   // --- matching -------------------------------------------------------
@@ -291,6 +390,7 @@ class FMockStore with ChangeNotifier {
     _saveTimer?.cancel();
     _saveTimer = null;
     _persistence = null;
+    _restoredFromStorage = false;
     _rules.clear();
     _scenarios.clear();
     _activeScenarioId = null;

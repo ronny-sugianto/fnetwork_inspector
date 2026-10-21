@@ -155,7 +155,7 @@ void main() {
       FMockStore.instance.addScenarios(<FMockScenario>[_s('Met-U')]);
       await pump(tester);
 
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byIcon(Icons.more_vert).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Edit…'));
       await tester.pumpAndSettle();

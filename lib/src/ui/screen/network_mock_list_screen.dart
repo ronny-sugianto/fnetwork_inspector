@@ -1,13 +1,9 @@
-import 'dart:convert';
-
 import 'package:fnetwork_inspector/src/core/fmock_store.dart';
-import 'package:fnetwork_inspector/src/core/fnetwork_meta.dart';
 import 'package:fnetwork_inspector/src/model/fmock_rule.dart';
 import 'package:fnetwork_inspector/src/model/fmock_scenario.dart';
+import 'package:fnetwork_inspector/src/ui/mock_file_actions.dart';
 import 'package:fnetwork_inspector/src/ui/widget/fnetwork_credit_footer.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 const Color _bg = Color(0xFF0D1117);
 const Color _surface = Color(0xFF161B22);
@@ -115,46 +111,14 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
     _snack('Scenario "${details.name}" saved');
   }
 
-  Future<void> _exportJson() async {
-    final String json = _store.exportJson();
-    final String fileName =
-        'fnetwork-mocks-${DateTime.now().millisecondsSinceEpoch}.json';
-    try {
-      await SharePlus.instance.share(
-        ShareParams(
-          files: <XFile>[
-            XFile.fromData(
-              utf8.encode(json),
-              mimeType: 'application/json',
-              name: fileName,
-            ),
-          ],
-          fileNameOverrides: <String>[fileName],
-          subject: 'fnetwork mocks',
-        ),
-      );
-    } catch (_) {
-      Clipboard.setData(ClipboardData(text: json));
-      _snack('Copied mocks JSON to clipboard');
-    }
-  }
+  Future<void> _exportJson() => shareMockFile(
+    context,
+    json: _store.exportJson(),
+    fileName: mockFileName('fnetwork-mocks'),
+    subject: 'fnetwork mocks',
+  );
 
-  Future<void> _importJson() async {
-    final String? json = await promptText(
-      context,
-      title: 'Import mocks (JSON)',
-      hint: 'Paste exported JSON…',
-      multiline: true,
-      confirmLabel: 'Import',
-    );
-    if (json == null || json.trim().isEmpty) return;
-    try {
-      _store.importJson(json);
-      _snack('Mocks imported');
-    } catch (_) {
-      _snack('Invalid JSON');
-    }
-  }
+  Future<void> _importFromText() => promptAndImportMocksText(context);
 
   Future<void> _openScenarios() {
     return Navigator.of(context).push(
@@ -206,8 +170,10 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
                         _openScenarios();
                       case 'export':
                         _exportJson();
-                      case 'import':
-                        _importJson();
+                      case 'import_file':
+                        importMocksFromFile(context);
+                      case 'import_text':
+                        _importFromText();
                     }
                   },
                   itemBuilder:
@@ -229,13 +195,23 @@ class _NetworkMockListScreenState extends State<NetworkMockListScreen> {
                         const PopupMenuDivider(),
                         const PopupMenuItem<String>(
                           value: 'export',
-                          child: _MenuRow(Icons.ios_share, 'Export (JSON)'),
+                          child: _MenuRow(
+                            Icons.ios_share,
+                            'Export all (.fnmock.json)',
+                          ),
                         ),
                         const PopupMenuItem<String>(
-                          value: 'import',
+                          value: 'import_file',
                           child: _MenuRow(
-                            Icons.file_download_outlined,
-                            'Import (JSON)…',
+                            Icons.file_open_outlined,
+                            'Import from file…',
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'import_text',
+                          child: _MenuRow(
+                            Icons.content_paste,
+                            'Import from text…',
                           ),
                         ),
                       ],
@@ -927,6 +903,19 @@ Future<String?> promptText(
   );
 }
 
+/// Asks the tester to paste the contents of a mock file, then imports it.
+Future<void> promptAndImportMocksText(BuildContext context) async {
+  final String? text = await promptText(
+    context,
+    title: 'Import mocks from text',
+    hint: 'Paste the contents of a .fnmock.json file…',
+    multiline: true,
+    confirmLabel: 'Next',
+  );
+  if (text == null || text.trim().isEmpty || !context.mounted) return;
+  await importMocksFromSource(context, text);
+}
+
 /// Result of [promptScenarioDetails].
 typedef ScenarioDetails = ({String name, String? group});
 
@@ -1110,7 +1099,12 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
     }
 
     final List<Widget> children = <Widget>[];
-    void section(String key, String title, List<FMockScenario> items) {
+    void section(
+      String key,
+      String title,
+      List<FMockScenario> items, {
+      required String fileBase,
+    }) {
       if (items.isEmpty) return;
       final bool collapsed = _collapsed.contains(key);
       children.add(
@@ -1121,6 +1115,7 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
           () => setState(() {
             if (!_collapsed.remove(key)) _collapsed.add(key);
           }),
+          () => exportScenarioFile(context, items, fileBase),
         ),
       );
       if (collapsed) return;
@@ -1135,12 +1130,14 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
         'group:$g',
         g,
         list.where((FMockScenario s) => s.group == g).toList(),
+        fileBase: g,
       );
     }
     section(
       'other',
       'Other scenarios',
       list.where((FMockScenario s) => s.group == null).toList(),
+      fileBase: 'other-scenarios',
     );
     return ListView(children: children);
   }
@@ -1150,12 +1147,13 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
     int count,
     bool collapsed,
     VoidCallback onTap,
+    VoidCallback onExport,
   ) {
     return InkWell(
       onTap: onTap,
       child: Container(
         color: _surface,
-        padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+        padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
         child: Row(
           children: <Widget>[
             Icon(
@@ -1181,40 +1179,27 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
               '$count',
               style: const TextStyle(color: _textMuted, fontSize: 11),
             ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz, size: 18, color: _textMuted),
+              tooltip: 'Group actions',
+              padding: EdgeInsets.zero,
+              color: _surface,
+              onSelected: (_) => onExport(),
+              itemBuilder:
+                  (BuildContext context) => const <PopupMenuEntry<String>>[
+                    PopupMenuItem<String>(
+                      value: 'export',
+                      child: _MenuRow(
+                        Icons.ios_share,
+                        'Export group (.fnmock.json)',
+                      ),
+                    ),
+                  ],
+            ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _share(FMockScenario s) async {
-    final String json = const JsonEncoder.withIndent('  ').convert(
-      <String, dynamic>{
-        'version': 1,
-        '_credit': kFNetworkInspectorUrl,
-        'scenarios': <dynamic>[s.toJson()],
-      },
-    );
-    final String fileName =
-        'scenario-${s.name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')}.json';
-    try {
-      await SharePlus.instance.share(
-        ShareParams(
-          files: <XFile>[
-            XFile.fromData(
-              utf8.encode(json),
-              mimeType: 'application/json',
-              name: fileName,
-            ),
-          ],
-          fileNameOverrides: <String>[fileName],
-          subject: 'fnetwork scenario: ${s.name}',
-        ),
-      );
-    } catch (_) {
-      Clipboard.setData(ClipboardData(text: json));
-      _snack('Copied scenario JSON to clipboard');
-    }
   }
 
   @override
@@ -1236,6 +1221,51 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                   icon: const Icon(Icons.bookmark_add_outlined, size: 20),
                   tooltip: 'Save current rules as scenario',
                   onPressed: _saveCurrent,
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  tooltip: 'More',
+                  color: _surface,
+                  onSelected: (String v) {
+                    switch (v) {
+                      case 'import_file':
+                        importMocksFromFile(context);
+                      case 'import_text':
+                        promptAndImportMocksText(context);
+                      case 'export_all':
+                        exportScenarioFile(
+                          context,
+                          _store.scenarios.toList(),
+                          'scenarios',
+                        );
+                    }
+                  },
+                  itemBuilder:
+                      (BuildContext context) => <PopupMenuEntry<String>>[
+                        const PopupMenuItem<String>(
+                          value: 'import_file',
+                          child: _MenuRow(
+                            Icons.file_open_outlined,
+                            'Import from file…',
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'import_text',
+                          child: _MenuRow(
+                            Icons.content_paste,
+                            'Import from text…',
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem<String>(
+                          value: 'export_all',
+                          enabled: _store.scenarios.isNotEmpty,
+                          child: const _MenuRow(
+                            Icons.ios_share,
+                            'Export all scenarios',
+                          ),
+                        ),
+                      ],
                 ),
               ],
               bottom: PreferredSize(
@@ -1372,7 +1402,7 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                   case 'edit':
                     _edit(s);
                   case 'share':
-                    _share(s);
+                    exportScenarioFile(context, <FMockScenario>[s], s.name);
                   case 'delete':
                     _store.deleteScenario(s.id);
                 }
@@ -1389,7 +1419,7 @@ class _MockScenarioListScreenState extends State<MockScenarioListScreen> {
                     ),
                     const PopupMenuItem<String>(
                       value: 'share',
-                      child: _MenuRow(Icons.ios_share, 'Share (JSON)'),
+                      child: _MenuRow(Icons.ios_share, 'Export (.fnmock.json)'),
                     ),
                     const PopupMenuDivider(),
                     const PopupMenuItem<String>(

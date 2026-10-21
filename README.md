@@ -43,7 +43,7 @@ A Flutter network inspector for [Dio](https://pub.dev/packages/dio) and [http](h
 - Filter by **HTTP method** and **path endpoint** via filter sheet — both support **multiple selection**
 - `~ req body` / `~ res body` badge when search matches payload
 - **Response mocking** — short-circuit any request with a synthetic response (custom status, content-type, body, latency); body can be text (JSON / HTML / XML) or base64 bytes (images, PDFs). Manage rules from the **Mocks** screen or `initialize(mockRules: [...])`
-- **Mock scenarios** — bundle rules into named sets ("logged out", "empty list", "server 500") and switch them in one tap; import/export as JSON; optional persistence across restarts via an `FMockPersistence` delegate
+- **Mock scenarios** — bundle rules into named sets ("logged out", "empty list", "server 500"), group them by feature/release, and switch them in one tap; export/import as `.fnmock.json` files (merge or replace) or load one at startup with `mockJson:`; optional persistence across restarts via an `FMockPersistence` delegate
 - **Chaos mode** — simulate a connection type (2G, Edge, 3G, 4G, 5G, Offline) with realistic latency + throttled bandwidth, or tune latency/bandwidth/failure-rate manually; exercise loading / error / retry paths via `FNetworkInspector.chaos` in code or the inspector UI
 - **Tester guide** — optional, localisable "before you report a bug" dialog for QA / product testers, shown at app start and reopenable from the inspector menu
 - **cURL export**, full-report copy & share
@@ -151,7 +151,7 @@ Navigator.of(context).push(
 );
 ```
 
-**Scenarios.** On the Mocks screen, ⋮ → *Save as scenario…* snapshots the current rules under a name. ⋮ → *Scenarios* lists them — tap to apply (swaps the whole rule set), or rename / delete / share as JSON. ⋮ → *Export (JSON)* / *Import (JSON)* moves rules + scenarios between devices or into version control. Seed at startup with `initialize(mockScenarios: [...])`.
+**Scenarios.** On the Mocks screen, ⋮ → *Save as scenario…* snapshots the current rules under a name. ⋮ → *Scenarios* lists them — tap to apply (swaps the whole rule set), or edit / delete / export. Seed at startup with `initialize(mockScenarios: [...])` or `initialize(mockJson: ...)` (see below).
 
 **Groups.** Organise scenarios under a header — e.g. one group per feature or release. Give a scenario a `group` (the *Save as scenario* and *Edit…* dialogs have a *Group* field with quick-pick chips for existing groups); the Scenarios screen then lists them under collapsible headers, with ungrouped ones under **Other scenarios**. Groups are only for organising: applying a scenario still replaces the rule set with that one scenario's rules.
 
@@ -167,6 +167,27 @@ mockScenarios: [
   FMockScenario(id: 'logged-out', name: 'Logged out', rules: [...]),   // → "Other scenarios"
 ],
 ```
+
+**Mock files (`.fnmock.json`).** Scenarios can be moved around as a dedicated file, so testers can share them over chat/email and you can keep them in version control.
+
+- **Export** — Scenarios screen: a row's ⋮ → *Export (.fnmock.json)* (one scenario), a group header's ⋯ → *Export group* (one release/feature), or the app bar's ⋮ → *Export all scenarios*. The Mocks screen's ⋮ → *Export all (.fnmock.json)* also includes the live rules and the on/off flags. The file is shared through the system share sheet (copied to the clipboard where sharing isn't available).
+- **Import** — ⋮ → *Import from file…* opens the system file picker (⋮ → *Import from text…* takes pasted JSON). A dialog first shows what the file contains, then you choose:
+  - **Merge** *(recommended)* — adds what's new and updates items that already exist (same id, or same name in the same group). Everything else is left alone, so importing the same file twice never duplicates anything.
+  - **Replace** — swaps the sections present in the file (scenarios and/or rules) for the file's. Sections the file doesn't contain are untouched.
+- Invalid files are rejected with a readable reason and change nothing. Older exports and bare rule arrays still import.
+
+Load a file from your app at startup, so nobody has to import it on every run:
+
+```dart
+await FNetworkInspector.initialize(
+  mockJson: await rootBundle.loadString('assets/mocks.fnmock.json'),
+  activeMockScenario: 'health-profile',   // optional: apply this one at launch
+);
+```
+
+`mockScenarios` and `mockJson` are **upserted on every launch** (matched by id, else name + group), so your code/asset stays the source of truth for the scenarios it defines, while scenarios testers created in the UI are left alone. `activeMockScenario` is skipped when `mockPersistence` restored a previous session — the tester's last state wins. A bad `mockJson` is reported with `debugPrint` and ignored; it never crashes startup.
+
+> **macOS:** the file picker needs `com.apple.security.files.user-selected.read-only` in your entitlements when the app is sandboxed.
 
 **Persistence.** Rules and scenarios are in memory by default. Pass an `FMockPersistence` delegate to keep them across restarts (the package ships none — back it with `shared_preferences`, a file, Hive, …):
 
@@ -294,7 +315,9 @@ Tapping a request notification will push the list screen and then the detail scr
 | `testerGuide` | `FTesterGuide?` | `null` | "You're in a testing environment" instructions dialog for testers, shown once per app start (needs `FNetworkInspectorOverlay`). All text is customisable/localisable. Ignored when `enableInspection` is `false`. |
 | `inspectorStorage` | `FInspectorStorage?` | `null` | Storage delegate so the guide's "don't show again" choice survives restarts. The package ships no implementation. |
 | `mockRules` | `List<FMockRule>?` | `null` | Seed the in-memory mock registry. Ignored when `enableInspection` is `false` or when `mockPersistence` restored a non-empty set. Add/remove more later via `FNetworkInspector.mocks`. |
-| `mockScenarios` | `List<FMockScenario>?` | `null` | Seed named scenarios. Same rules as `mockRules`. |
+| `mockScenarios` | `List<FMockScenario>?` | `null` | Named scenarios, **upserted on every launch** (by id, else name + group). Scenarios testers created in the UI are kept. |
+| `mockJson` | `String?` | `null` | Text of a `.fnmock.json` file (e.g. from `rootBundle`), merged like `mockScenarios`. Invalid content is skipped with a `debugPrint`. |
+| `activeMockScenario` | `String?` | `null` | Id of a scenario to apply at startup. Ignored when `mockPersistence` restored a session. |
 | `mockPersistence` | `FMockPersistence?` | `null` | Storage delegate so mock rules + scenarios survive app restarts. The package ships no implementation. |
 
 ### `FMockRule.create()`
